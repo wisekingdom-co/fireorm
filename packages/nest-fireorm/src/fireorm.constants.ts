@@ -1,0 +1,2 @@
+
+export const FIREORM_INSTANCT = 'FIREORM_TOKEN'
