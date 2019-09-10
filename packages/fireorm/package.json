@@ -1,0 +1,24 @@
+{
+  "name": "@isman/fireorm",
+  "version": "0.0.0",
+  "main": "./lib/index.js",
+  "typings": "./lib/index.d.ts",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^2.2.9",
+    "class-transformer": "^0.2.3",
+    "class-validator": "^0.10.0",
+    "is-class": "^0.0.8",
+    "pluralize": "^8.0.0",
+    "reflect-metadata": "^0.1.13",
+    "uuid": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/pluralize": "^0.0.29",
+    "ts-node": "^8.3.0",
+    "typescript": "3.5.3"
+  }
+}
