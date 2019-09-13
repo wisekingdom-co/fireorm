@@ -5,6 +5,7 @@
   "typings": "./lib/index.d.ts",
   "license": "MIT",
   "scripts": {
+    "prepublish": "npm run build",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
