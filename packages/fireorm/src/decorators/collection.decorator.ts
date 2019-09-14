@@ -2,13 +2,14 @@ import { getMetadataStorage, CollectionMetadataArgs } from "../metadata-storage"
 import { plural } from 'pluralize';
 
 function getCollectionPath(entityName: string) {
-    return plural(entityName)
+    return plural(entityName
         .replace(/[\w]([A-Z])/g, m => {
             return m[0] + "_" + m[1];
         })
         .toLowerCase()
-        .replace("_entities",'')
-        .replace('_models', '')
+        .replace("_entity",'')
+        .replace('_model', '')
+    )
 }
 
 export interface CollectionOptions {
