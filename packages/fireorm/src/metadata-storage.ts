@@ -3,7 +3,7 @@ import { IdPropertyOptions } from "./decorators/id-prop.decorator";
 import { PropertyOptions } from "./decorators/prop.decorator";
 
 export interface CollectionMetadataArgs {
-    name: string
+    path: string
     target: Function
     options: CollectionOptions
 }
@@ -46,12 +46,12 @@ export class MetadataStorage {
         return collection
     }
 
-    getCollectionName (target: Function) {
+    getCollectionPath (target: Function) {
         const collection = this.collections.find(collection => collection.target === target)
         if (!collection) {
             throw new Error("CollectionNotFound")
         }
-        return (collection.options.prefix ? collection.options.prefix : '') + collection.name
+        return (collection.options.prefix ? collection.options.prefix : '') + collection.path
     }
 
     getProperties(target: Function) {

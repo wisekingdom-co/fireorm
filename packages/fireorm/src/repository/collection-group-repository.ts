@@ -8,8 +8,8 @@ import { FindManyOptions, FindOneOptions } from "../query-builder";
 
 export class CollectionGroupRepository<Entity = any> {
     static getCollectionGroupRepository<Entity>(firestore: Firestore, target: EntitySchema<Entity>): CollectionGroupRepository<Entity> {
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        const query = firestore.collectionGroup(collectionName)
+        const getCollectionPath = getMetadataStorage().getCollectionPath(target)
+        const query = firestore.collectionGroup(getCollectionPath)
 
         return new CollectionGroupRepository<Entity>(target, query)
     }

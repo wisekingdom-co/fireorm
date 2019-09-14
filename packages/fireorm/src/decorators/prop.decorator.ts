@@ -49,6 +49,10 @@ export function Prop(type?: (type?: any) => Function): Function;
 
 export function Prop(type?: SimpleColumnType | ((type?: any) => Function), options: PropertyOptions = {}): Function {
     return function (object: Object, propertyName: string) {
+        if (!type) {
+            type = Reflect.getMetadata("design:type", object, propertyName).name.toLowerCase();
+        }
+
         Expose({ name: options.name })(object, propertyName)
         if (options.default && typeof options.default === 'function') {
             Transform((value: any) => value || options.default() || null)(object, propertyName)

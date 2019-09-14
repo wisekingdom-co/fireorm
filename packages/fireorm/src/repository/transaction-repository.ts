@@ -57,14 +57,14 @@ export class TransactionRepository {
         if (id) {
             id
         }
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        return this.firestore.collection(collectionName).doc().id
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        return this.firestore.collection(collectionPath).doc().id
     }
 
     async create<Entity>(target: EntitySchema<Entity>, partialEntity: QueryDeepPartialEntity<Entity> | QueryDeepPartialEntity<Entity>[]): Promise<Entity[] | Entity> {
         const idPropName = getMetadataStorage().getIdPropName(target)
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        const collectionRef = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        const collectionRef = this.firestore.collection(collectionPath)
 
         if (partialEntity instanceof Array) {
             const docs = partialEntity.map(entity => {
@@ -98,8 +98,8 @@ export class TransactionRepository {
 
     async update<Entity>(target: EntitySchema<Entity>, criteria: string | string[], partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity): Promise<void> {
         const idPropName = getMetadataStorage().getIdPropName(target)
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        const collectionRef = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        const collectionRef = this.firestore.collection(collectionPath)
 
         if (criteria instanceof Array) {
             criteria.forEach(id => {
@@ -113,8 +113,8 @@ export class TransactionRepository {
     }
 
     async delete<Entity>(target: EntitySchema<Entity>, criteria: string | string[]): Promise<void> {
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        const collectionRef = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        const collectionRef = this.firestore.collection(collectionPath)
 
         if (criteria instanceof Array) {
             criteria.forEach(id => {
@@ -127,8 +127,8 @@ export class TransactionRepository {
     }
 
     async find<Entity>(target: EntitySchema<Entity>, optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<Entity[]> {
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        let query: Query = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        let query: Query = this.firestore.collection(collectionPath)
 
         const where = this.getFindConditionsFromFindManyOptions(optionsOrConditions);
         if (where) {
@@ -164,8 +164,8 @@ export class TransactionRepository {
     }
 
     async findOne<Entity>(target: EntitySchema<Entity>, optionsOrConditions?: FindOneOptions<Entity> | FindConditions<Entity>): Promise<Entity | undefined> {
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        let query: Query = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        let query: Query = this.firestore.collection(collectionPath)
 
         const where = this.getFindConditionsFromFindOneOptions(optionsOrConditions);
         if (where) {
@@ -195,16 +195,16 @@ export class TransactionRepository {
     }
 
     async findById<Entity>(target: EntitySchema<Entity>, id: string, options?: FindOneOptions<Entity>): Promise<Entity | undefined> {
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        const collectionRef = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        const collectionRef = this.firestore.collection(collectionPath)
 
         const docRef = await this.tnx.get(collectionRef.doc(id))
         return docRef.exists ? docRef.data() as Entity : undefined
     }
 
     async findByIds<Entity>(target: EntitySchema<Entity>, ids: string[], options?: FindOneOptions<Entity>): Promise<Entity[]> {
-        const collectionName = getMetadataStorage().getCollectionName(target)
-        const collectionRef = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        const collectionRef = this.firestore.collection(collectionPath)
 
         const docRefs = ids.map(id => {
             return collectionRef.doc(id)

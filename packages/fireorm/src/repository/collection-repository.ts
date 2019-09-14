@@ -17,15 +17,15 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
     }
 
     protected idPropName: string
-    protected collectionName: string
+    protected collectionPath: string
     protected collectionRef: CollectionReference
 
     constructor(protected target: EntitySchema<Entity>, protected firestore: Firestore) {
-        super(target, firestore.collection(getMetadataStorage().getCollectionName(target)));
+        super(target, firestore.collection(getMetadataStorage().getCollectionPath(target)));
         
         this.idPropName = getMetadataStorage().getIdPropName(this.target)
-        this.collectionName = getMetadataStorage().getCollectionName(this.target)
-        this.collectionRef = this.firestore.collection(this.collectionName)
+        this.collectionPath = getMetadataStorage().getCollectionPath(this.target)
+        this.collectionRef = this.firestore.collection(this.collectionPath)
     }
 
     protected isObject(x: any) {
@@ -53,8 +53,8 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
         if (id) {
             return id
         }
-        const collectionName = getMetadataStorage().getCollectionName(this.target)
-        return this.firestore.collection(collectionName).doc().id
+        const collectionPath = getMetadataStorage().getCollectionPath(this.target)
+        return this.firestore.collection(collectionPath).doc().id
     }
 
     async runTransaction<T>(updateFunction: (tnxRepo: TransactionRepository) => Promise<T>, transactionOptions?: {maxAttempts?: number}): Promise<T> {
@@ -62,16 +62,16 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
     }
 
     async findById(id: string, options?: FindOneOptions<Entity>): Promise<Entity | undefined> {
-        const collectionName = getMetadataStorage().getCollectionName(this.target)
-        const collectionRef = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(this.target)
+        const collectionRef = this.firestore.collection(collectionPath)
 
         const docRef = await collectionRef.doc(id).get()
         return docRef.exists ? this.transformToClass(docRef.data()) : undefined
     }
 
     async findByIds(ids: string[], options?: FindOneOptions<Entity>): Promise<Entity[]> {
-        const collectionName = getMetadataStorage().getCollectionName(this.target)
-        const collectionRef = this.firestore.collection(collectionName)
+        const collectionPath = getMetadataStorage().getCollectionPath(this.target)
+        const collectionRef = this.firestore.collection(collectionPath)
 
         const docRefs = await this.firestore.getAll(...ids.map(id => collectionRef.doc(id)))
         return docRefs.map(docRef => this.transformToClass(docRef.data()))
