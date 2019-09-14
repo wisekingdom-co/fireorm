@@ -7,8 +7,8 @@ function getCollectionPath(entityName: string) {
             return m[0] + "_" + m[1];
         })
         .toLowerCase()
-        .replace("_entity",'')
-        .replace('_model', '')
+        .replace("_entities",'')
+        .replace('_models', '')
 }
 
 export interface CollectionOptions {
