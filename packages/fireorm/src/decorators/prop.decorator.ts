@@ -5,7 +5,6 @@ import { IsString, IsDecimal, IsInt, IsNumber, MinLength, MaxLength, Min, Max, I
 export type SimpleColumnType = 'string' | 'number' | 'float' | 'integer' | 'boolean' | 'date' | 'array'
 
 export interface CommonPropertyOptions {
-    name?: string
     default?: any | (() => any)
 }
 
@@ -53,7 +52,6 @@ export function Prop(type?: SimpleColumnType | ((type?: any) => Function), optio
             type = Reflect.getMetadata("design:type", object, propertyName).name.toLowerCase();
         }
 
-        Expose({ name: options.name })(object, propertyName)
         if (options.default && typeof options.default === 'function') {
             Transform((value: any) => value || options.default() || null)(object, propertyName)
         }
@@ -70,12 +68,13 @@ export function Prop(type?: SimpleColumnType | ((type?: any) => Function), optio
             if (options.minSize) {
                 ArrayMinSize(options.minSize)
             }
-            classValidate(type, options, true)(object, propertyName)
+            if (options.elementType) {
+                classValidate(options.elementType, options, true)(object, propertyName)
+            }
         } else if (type) {
             classValidate(type, options, false)(object, propertyName)
         }
-        
-        
+  
         getMetadataStorage().properties.push({
             target: object.constructor,
             propertyName: propertyName,

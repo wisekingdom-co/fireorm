@@ -1,93 +1,41 @@
 import 'reflect-metadata'
-import { Prop, Collection, IdProp, CollectionRepository, ArraContains, Ref } from '../src';
+import { Prop, Collection, IdProp, CollectionRepository, ArraContains, Ref, ManyToOne } from '../fireorm/src';
 import { Firestore } from '@google-cloud/firestore';
-
-
-class Addess {
-    @Prop()
-    address: string
-
-    @Prop()
-    provice: string
-
-    @Prop()
-    postcode: string
-}
-
-@Collection()
-class App {
-    @IdProp()
-    id: string
-
-    @Prop() 
-    title: string
-}
-
-@Collection("users", { prefix: "app_" })
-class User {
-    @IdProp("uuid/v1")
-    id: string
-
-    @Prop() 
-    email: string
-
-    @Prop()
-    name: string
-
-    @Prop(() => Addess)
-    address: Addess
-
-    @Prop()
-    tags: string[]
-
-    @Prop(() => Date, { default: () => new Date() })
-    create_date: Date
-
-    @Prop()
-    app: Ref<App>
-
-    toDto() {
-        return {
-            id: this.id,
-            name: this.name,
-            create_date: this.create_date,
-        }
-    }
-}
+import { App } from './models/App';
+import { User } from './models/User';
+import { Version } from './models/Version';
+import { version } from 'punycode';
 
 const firestore = new Firestore({
     projectId: 'functions-nextjs',
     credentials: require('./functions-nextjs-firebase-adminsdk-r5j5s-516be783f5.json')
 })
 
+firestore.settings({
+    timestampsInSnapshots: true
+})
+
 async function run () {
-    const userRepo = CollectionRepository.getRepository(firestore, User)
+    // const appRepo = CollectionRepository.getRepository(App, firestore)
+    // const versionRepo = appRepo.getSubRepository(Version, 'versions', '')
+    const userRepo = CollectionRepository.getRepository(App, firestore)
 
-    const newPerson1 = new User()
-    newPerson1.name = 'Isman Usoh'
-    newPerson1.email = 'isman.usoh@gmail.com'
-    newPerson1.tags = ["mele", "31"]
 
-    const newPerson2 = new User()
-    newPerson2.name = 'Maisaroh Tuengngoh'
-    newPerson2.email = 'ooaokoo@gmail.com'
-    newPerson2.tags = ["femele", "30"]
-    // newPerson2.create_date = new Date()
+    const newUser = new User()
+    newUser.name = "Isman Usoh"
+    newUser.email = 'isman.usoh@gmail.com'
 
-    // const result=  await userRepo.save([newPerson1, newPerson2])
-    // console.error('result', result)
+    await userRepo.save(newUser)
 
-    const docs = await userRepo.find({ tags: ArraContains("femele") })
-    console.error("docs", docs.map(doc => doc.toDto()))
-
-    // await personRepo.transaction(async (tnx) => {
-    //     tnx.create(Person, { email: "gmail.com" })
-    //     tnx.create(App, { title: "Demo" })
-    // })
-
+    // const newApp = await appRepo.create({ title: "Hello World" })
+    // console.error("App", newApp)
     
-    // await personRepo.update("QF9uOKXqv7gQJs2oxrhL", { name: 'Google', 'tags.$0': 'hello11' })
-    // await personRepo.delete(['QF9uOKXqv7gQJs2oxrhL', 'u35mNgpfdd35JsSAGcYL'])
+    // const versionRepo = appRepo.getSubRepository(Version, 'versions', newApp.id)
+
+    // await versionRepo.create([{ type: 'MAJOR', value: '2.0.0' }, { type: 'MINER', value: '2.1.0' }])
+    // await new Promise((resove) => setTimeout(resove, 800))
+    // const versions = await versionRepo.find()
+    // console.error("Versions", 8GPlBJXmbQf0z4JVf3ug)
 }
 
 try {

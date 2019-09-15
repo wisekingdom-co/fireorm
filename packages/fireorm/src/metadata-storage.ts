@@ -1,6 +1,7 @@
 import { CollectionOptions } from "./decorators/collection.decorator";
 import { IdPropertyOptions } from "./decorators/id-prop.decorator";
 import { PropertyOptions } from "./decorators/prop.decorator";
+import { ObjectType } from "./common";
 
 export interface CollectionMetadataArgs {
     path: string
@@ -25,9 +26,9 @@ export interface PropertyMetadataArgs {
 export interface RelationMetadataArgs {
     target: Function
     propertyName: string
-    relationType: "one-to-many" | "many-to-one" | "one-to-one"
-    lazy: boolean
-    type: any
+    type: () => ObjectType<any>
+    relationType: "one-to-many" | "many-to-one"
+    inverseSide?: string
 }
 
 
@@ -49,7 +50,8 @@ export class MetadataStorage {
     getCollectionPath (target: Function) {
         const collection = this.collections.find(collection => collection.target === target)
         if (!collection) {
-            throw new Error("CollectionNotFound")
+            console.error('getCollectionPath', target)
+            throw new Error("CollectionNotFound" + target)
         }
         return (collection.options.prefix ? collection.options.prefix : '') + collection.path
     }

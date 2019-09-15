@@ -3,14 +3,14 @@ import { getCollectionToken } from './fireorm.utils';
 import { Firestore } from '@google-cloud/firestore';
 import { FIRESTORE_INSTANCT } from './fireorm.constants';
 
-export interface FireormFeatureOptions {
+export interface FireOrmFeatureOptions {
     collections: EntitySchema<any>[]
 }
 
-export function createCollectionProviders(options: FireormFeatureOptions) {
+export function createCollectionProviders(options: FireOrmFeatureOptions) {
     return options.collections.map(collection => ({
         provide: getCollectionToken(collection.name),
-        useFactory: (firestore: Firestore) => CollectionRepository.getCollectionRepository(collection, firestore),
+        useFactory: (firestore: Firestore) => CollectionRepository.getRepository(collection, firestore),
         inject: [FIRESTORE_INSTANCT],
     }))
 }

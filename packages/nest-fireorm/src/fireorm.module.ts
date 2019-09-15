@@ -1,25 +1,25 @@
 import { DynamicModule, Module } from '@nestjs/common'
-import { FireormModuleOptions, FireormModuleAsyncOptions } from './fireorm-options';
+import { FireOrmModuleOptions, FireOrmModuleAsyncOptions } from './fireorm-options';
 import { FirestoreModule } from './firestore.module';
-import { FireormFeatureOptions, createCollectionProviders } from './fireorm.providers';
+import { FireOrmFeatureOptions, createCollectionProviders } from './fireorm.providers';
 
 @Module({})
-export class FireormModule {
-    static forRoot(options: FireormModuleOptions): DynamicModule {
+export class FireOrmModule {
+    static forRoot(options: FireOrmModuleOptions): DynamicModule {
         return {
-            module: FireormModule,
+            module: FireOrmModule,
             imports: [FirestoreModule.forRoot(options)],
         }
     }
 
-    static forRootAsync(options: FireormModuleAsyncOptions): DynamicModule {
+    static forRootAsync(options: FireOrmModuleAsyncOptions): DynamicModule {
         return {
             module: FirestoreModule,
             imports: [FirestoreModule.forRootAsync(options)],
         }
     }
 
-    static forFeature(options: FireormFeatureOptions): DynamicModule {
+    static forFeature(options: FireOrmFeatureOptions): DynamicModule {
         const providers = createCollectionProviders(options)
         return {
             module: FirestoreModule,

@@ -4,27 +4,29 @@ import { DeepPartial } from '../common/deep-partial';
 import { EntitySchema } from '../common/entity-schema';
 import { TransactionRepository } from './transaction-repository';
 import { QueryDeepPartialEntity, QueryDotNotationPartialEntity } from '../query-builder/query-partial-entity';
-import { FindOneOptions, FindManyOptions } from '../query-builder/find-options';
+import { FindManyOptions, FindOneOptions } from '../query-builder/find-options';
 import { FindConditions } from '../query-builder/find-conditions';
-import { CollectionGroupRepository } from './collection-group-repository';
+import { CollectionQuery } from './collection-query';
 
 const { FieldTransform } = require('@google-cloud/firestore/build/src/field-value')
-const isClass = require('is-class')
 
-export class CollectionRepository<Entity = any> extends CollectionGroupRepository<Entity> {
-    static getCollectionRepository<Entity>(target: EntitySchema<Entity>, firestore: Firestore,): CollectionRepository<Entity> {
-        return new CollectionRepository<Entity>(target, firestore)
+export class CollectionRepository<Entity = any> {
+    static getRepository<Entity>(target: EntitySchema<Entity>, firestore: Firestore, parentPath?: string): CollectionRepository<Entity> {
+        return new CollectionRepository<Entity>(target, firestore, new CollectionQuery(firestore, parentPath), parentPath)
     }
 
     protected idPropName: string
     protected collectionPath: string
     protected collectionRef: CollectionReference
 
-    constructor(protected target: EntitySchema<Entity>, protected firestore: Firestore) {
-        super(target, firestore.collection(getMetadataStorage().getCollectionPath(target)));
-        
+    constructor(
+        protected target: EntitySchema<Entity>, 
+        protected firestore: Firestore, 
+        protected query: CollectionQuery, 
+        collectionPath?: string
+    ) {
         this.idPropName = getMetadataStorage().getIdPropName(this.target)
-        this.collectionPath = getMetadataStorage().getCollectionPath(this.target)
+        this.collectionPath = collectionPath ? collectionPath : getMetadataStorage().getCollectionPath(this.target)
         this.collectionRef = this.firestore.collection(this.collectionPath)
     }
 
@@ -58,23 +60,12 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
     }
 
     async runTransaction<T>(updateFunction: (tnxRepo: TransactionRepository) => Promise<T>, transactionOptions?: {maxAttempts?: number}): Promise<T> {
-        return this.firestore.runTransaction(tnx => updateFunction(new TransactionRepository(this.firestore, tnx)), transactionOptions)
+        return this.firestore.runTransaction(tnx => updateFunction(new TransactionRepository(this.firestore, this.collectionPath, tnx)), transactionOptions)
     }
 
-    async findById(id: string, options?: FindOneOptions<Entity>): Promise<Entity | undefined> {
-        const collectionPath = getMetadataStorage().getCollectionPath(this.target)
-        const collectionRef = this.firestore.collection(collectionPath)
-
-        const docRef = await collectionRef.doc(id).get()
-        return docRef.exists ? this.transformToClass(docRef.data()) : undefined
-    }
-
-    async findByIds(ids: string[], options?: FindOneOptions<Entity>): Promise<Entity[]> {
-        const collectionPath = getMetadataStorage().getCollectionPath(this.target)
-        const collectionRef = this.firestore.collection(collectionPath)
-
-        const docRefs = await this.firestore.getAll(...ids.map(id => collectionRef.doc(id)))
-        return docRefs.map(docRef => this.transformToClass(docRef.data()))
+    getSubRepository<T>(target: EntitySchema<T>, field: keyof Entity, id: string) {
+        const subCollectionPath = `${this.collectionPath}/${id}/${field}`
+        return CollectionRepository.getRepository(target, this.firestore, subCollectionPath)
     }
 
     async save<T extends DeepPartial<Entity>>(entity: T): Promise<T>;
@@ -84,20 +75,20 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
             const batch = this.firestore.batch()
             const docs = entityOrEntities.map(entity => {
                 let entityClassObject = entity as any
-                if (!isClass(entity))
-                    entityClassObject = this.transformToClass(entity)
+                if (!(entity instanceof this.target))
+                    entityClassObject = this.query.transformToClass(this.target, entity)
 
                 const id = entityClassObject[this.idPropName]
                 if (id) {
                     delete entityClassObject[this.idPropName]
 
-                    batch.update(this.collectionRef.doc(id), this.transformToPlain(entityClassObject))
+                    batch.update(this.collectionRef.doc(id), this.query.transformToPlain(entityClassObject))
                     return entityClassObject
                 } else {
                     entityClassObject[this.idPropName] = this.getId()
                     
                     batch.create(this.collectionRef
-                        .doc(entityClassObject[this.idPropName]), this.transformToPlain(entityClassObject))
+                        .doc(entityClassObject[this.idPropName]), this.query.transformToPlain(entityClassObject))
                     return entityClassObject
                 }
             })
@@ -105,21 +96,22 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
             return docs;
         } else {
             let entityClassObject = entityOrEntities as any
-            if (!isClass(entityOrEntities))
-                entityClassObject = this.transformToClass(entityClassObject)
+            if (!(entityOrEntities instanceof this.target)) {
+                entityClassObject = this.query.transformToClass(this.target, entityOrEntities)
+            }
 
             const id = entityClassObject[this.idPropName]
             if (id) {
                 entityClassObject[this.idPropName]
 
-                await this.collectionRef.doc(id).update(this.transformToPlain(entityClassObject))
+                await this.collectionRef.doc(id).update(this.query.transformToPlain(entityClassObject))
                 return entityClassObject
             } else {
                 entityClassObject[this.idPropName] = this.getId()
 
                 await this.collectionRef
                     .doc(entityClassObject[this.idPropName])
-                    .set(this.transformToPlain(entityClassObject))
+                    .set(this.query.transformToPlain(entityClassObject))
                 return entityClassObject
             }
         }
@@ -132,12 +124,15 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
             const batch = this.firestore.batch()
             const docs = partialEntity.map(entity => {
                 let entityClassObject = entity as any
-                if (!isClass(entity))
-                    entityClassObject = this.transformToClass(entity)
+                if (!(entity instanceof this.target))
+                    entityClassObject = this.query.transformToClass(this.target, entity)
                 
                 entityClassObject[this.idPropName] = this.getId()
 
-                batch.create(this.collectionRef.doc(entityClassObject[this.idPropName]), this.transformToPlain(entityClassObject))
+                batch.create(
+                    this.collectionRef.doc(entityClassObject[this.idPropName]), 
+                    this.query.transformToPlain(entityClassObject)
+                )
                 return entityClassObject
             })
 
@@ -145,14 +140,14 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
             return docs
         } else {
             let entityClassObject = partialEntity as any
-            if (!isClass(entityClassObject))
-                entityClassObject = this.transformToClass(partialEntity)
+            if (!(partialEntity instanceof this.target))
+                entityClassObject = this.query.transformToClass(this.target, partialEntity)
             
             entityClassObject[this.idPropName] = this.getId()
 
             this.collectionRef
                 .doc(entityClassObject[this.idPropName])
-                .set(this.transformToPlain(entityClassObject))
+                .set(this.query.transformToPlain(entityClassObject))
             return entityClassObject
         }
     }
@@ -173,7 +168,7 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
             delete (partialEntity as any)[this.idPropName]
             return this.collectionRef.doc(criteria).update(this.dotNotationObj(partialEntity))
         } else {
-            const docs = await this.find(criteria)
+            const docs = await this.query.find(this.target, criteria)
             const batch = this.firestore.batch()
             docs.forEach(doc => {
                 const docRef = this.collectionRef.doc((doc as any)[this.idPropName])
@@ -198,7 +193,7 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
         } else if (typeof criteria === 'string') {
             return this.collectionRef.doc(criteria).delete()
         } else {
-            const docs = await this.find(criteria)
+            const docs = await this.query.find(this.target, criteria)
             const batch = this.firestore.batch()
             docs.forEach(doc => {
                 const docRef = this.collectionRef.doc((doc as any)[this.idPropName])
@@ -206,5 +201,29 @@ export class CollectionRepository<Entity = any> extends CollectionGroupRepositor
             })
             return batch.commit()
         }
+    }
+
+    async find(options?: FindManyOptions<Entity>): Promise<Entity[]>
+    async find(conditions?: FindConditions<Entity>): Promise<Entity[]>
+    async find(optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<Entity[]> {
+        return this.query.find(this.target, optionsOrConditions)
+    }
+
+    async findOne(options?: FindOneOptions<Entity>): Promise<Entity | undefined>
+    async findOne(conditions?: FindConditions<Entity>): Promise<Entity | undefined>
+    async findOne(optionsOrConditions?: FindOneOptions<Entity> | FindConditions<Entity>): Promise<Entity | undefined> {
+        return this.query.findOne(this.target, optionsOrConditions)
+    }
+
+    async findOneOrFail(options?: FindOneOptions<Entity>): Promise<Entity>
+    async findOneOrFail(conditions?: FindConditions<Entity>): Promise<Entity>
+    async findOneOrFail(optionsOrConditions?: FindOneOptions<Entity> | FindConditions<Entity>): Promise<Entity> {
+        return this.query.findOneOrFail(this.target, optionsOrConditions)
+    }
+
+    async findByIds(id: string, options?: FindOneOptions<Entity>): Promise<Entity | undefined>
+    async findByIds(ids: string[], options?: FindOneOptions<Entity>): Promise<(Entity | undefined)[]>
+    async findByIds(idOrIds: string | string[], options?: FindOneOptions<Entity>): Promise<(Entity | undefined) | (Entity | undefined)[]> {
+        return this.query.findByIds(this.target, idOrIds as any, options)
     }
 }
