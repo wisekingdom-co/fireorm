@@ -1,42 +1,43 @@
-import { CollectionOptions } from "./decorators/collection.decorator";
-import { IdPropertyOptions } from "./decorators/id-prop.decorator";
-import { PropertyOptions } from "./decorators/prop.decorator";
-import { ObjectType } from "./common";
 
 export interface CollectionMetadataArgs {
     path: string
     target: Function
-    options: CollectionOptions
+    prefix?: string
 }
 
 export interface IdPropertyMetadataArgs {
     target: Function
     propertyName: string
     strategy: "uuid/v1" | 'uuid/v4' | 'auto' | (() => string)
-    options: IdPropertyOptions
 }
 
 export interface PropertyMetadataArgs {
     target: Function
     propertyName: string
     type: any
-    options: PropertyOptions
+    embedded: boolean
 }
 
 export interface RelationMetadataArgs {
     target: Function
     propertyName: string
-    type: () => ObjectType<any>
+    type: any
     relationType: "one-to-many" | "many-to-one"
     inverseSide?: string
 }
 
+export interface EmbeddedMetadataArgs {
+    target: Function
+    propertyName: string
+    type: any
+}
 
 export class MetadataStorage {
     readonly collections: CollectionMetadataArgs[] = []
 
     readonly ids: IdPropertyMetadataArgs[]  = []
     readonly properties: PropertyMetadataArgs[] = []
+    readonly embeddeds: EmbeddedMetadataArgs[] = []
     readonly relations: RelationMetadataArgs[] = []
 
     getCollection (target: Function) {
@@ -50,10 +51,9 @@ export class MetadataStorage {
     getCollectionPath (target: Function) {
         const collection = this.collections.find(collection => collection.target === target)
         if (!collection) {
-            console.error('getCollectionPath', target)
             throw new Error("CollectionNotFound" + target)
         }
-        return (collection.options.prefix ? collection.options.prefix : '') + collection.path
+        return (collection.prefix ? collection.prefix : '') + collection.path
     }
 
     getProperties(target: Function) {

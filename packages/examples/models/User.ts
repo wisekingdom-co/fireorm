@@ -44,11 +44,15 @@ export class User {
     @Prop('date')
     create_date: Date
 
-    @Prop('array')
+    @Prop('date')
     multiple_date: Date[]
 
     @ManyToOne(() => App)
     app: Ref<App>
+
+    @ManyToOne(() => Version, () => App, 'versions')
+    version: Ref<App>
+
 
     toDto() {
         return {

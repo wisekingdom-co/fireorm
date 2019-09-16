@@ -22,6 +22,7 @@ export function Collection(path?: string, options: CollectionOptions = {}): Func
             path: path || getCollectionPath((target as any).name),
             target,
             options,
+            prefix: options.prefix
         } as CollectionMetadataArgs)
     }
 }
