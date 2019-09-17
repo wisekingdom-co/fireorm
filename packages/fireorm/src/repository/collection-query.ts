@@ -92,7 +92,7 @@ export class CollectionQuery {
         const collectionPath = getMetadataStorage().getCollectionPath(target)
 
         const datas = docs.map((doc, index) => {
-            const data = { ...doc.data() } as any
+            const data = { ...doc.data(), [idPropName]: doc.id } as any
 
             if (relations && relations.length > 0) {
                 const relationMetadataArgs = getMetadataStorage().relations.filter(item => item.target === target)
