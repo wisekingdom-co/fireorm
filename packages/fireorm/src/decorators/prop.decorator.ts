@@ -1,6 +1,7 @@
 import { getMetadataStorage, PropertyMetadataArgs, EmbeddedMetadataArgs } from "../metadata-storage";
 import { Type, Transform } from "class-transformer";
 import { IsString, IsDecimal, IsInt, IsNumber, MinLength, MaxLength, Min, Max, IsEnum, IsArray, ArrayMaxSize, ArrayMinSize } from 'class-validator'
+import * as R from 'ramda'
 
 export type SimpleColumnType = 'string' | 'number' | 'float' | 'integer' | 'boolean' | 'date'
 
@@ -48,8 +49,8 @@ export function Prop(type?: SimpleColumnType | ((type?: any) => Function), optio
             type = Reflect.getMetadata("design:type", object, propertyName).name.toLowerCase();
         }
 
-        if (options.default) {
-            Transform(value => value || typeof options.default === 'function' ? options.default() : options.default)(object, propertyName)
+        if (!R.isNil(options.default)) {
+            Transform(value => value || R.is(Function, options.default) ? options.default() : options.default)(object, propertyName)
         }
 
         if (isArray) {

@@ -1,4 +1,5 @@
 import { Firestore, WriteResult, CollectionReference } from '@google-cloud/firestore'
+import { classToClass } from 'class-transformer'
 import { getMetadataStorage } from '../metadata-storage';
 import { DeepPartial } from '../common/deep-partial';
 import { EntitySchema } from '../common/entity-schema';
@@ -75,8 +76,11 @@ export class CollectionRepository<Entity = any> {
             const batch = this.firestore.batch()
             const docs = entityOrEntities.map(entity => {
                 let entityClassObject = entity as any
-                if (!(entity instanceof this.target))
+                if (!(entity instanceof this.target)) {
                     entityClassObject = this.query.transformToClass(this.target, entity)
+                } else {
+                    entityClassObject = classToClass(entity)
+                }
 
                 const id = entityClassObject[this.idPropName]
                 if (id) {
@@ -98,6 +102,8 @@ export class CollectionRepository<Entity = any> {
             let entityClassObject = entityOrEntities as any
             if (!(entityOrEntities instanceof this.target)) {
                 entityClassObject = this.query.transformToClass(this.target, entityOrEntities)
+            } else {
+                entityClassObject = classToClass(entityClassObject)
             }
 
             const id = entityClassObject[this.idPropName]
