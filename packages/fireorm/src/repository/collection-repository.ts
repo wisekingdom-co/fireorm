@@ -51,7 +51,7 @@ export class CollectionRepository<Entity = any> {
         return loop([], {}, data)
     }
 
-    protected getId(): string {
+    getDocId(): string {
         const id = getMetadataStorage().getIdGenerataValue(this.target)
         if (id) {
             return id
@@ -60,7 +60,11 @@ export class CollectionRepository<Entity = any> {
         return this.firestore.collection(collectionPath).doc().id
     }
 
-    async runTransaction<T>(updateFunction: (tnxRepo: TransactionRepository) => Promise<T>, transactionOptions?: {maxAttempts?: number}): Promise<T> {
+    getDocRef(docId?: string) {
+        return this.collectionRef.doc(docId || this.getDocId())
+    }
+
+    runTransaction<T>(updateFunction: (tnxRepo: TransactionRepository) => Promise<T>, transactionOptions?: {maxAttempts?: number}): Promise<T> {
         return this.firestore.runTransaction(tnx => updateFunction(new TransactionRepository(this.firestore, this.collectionPath, tnx)), transactionOptions)
     }
 
@@ -89,7 +93,7 @@ export class CollectionRepository<Entity = any> {
                     batch.update(this.collectionRef.doc(id), this.query.transformToPlain(entityClassObject))
                     return entityClassObject
                 } else {
-                    entityClassObject[this.idPropName] = this.getId()
+                    entityClassObject[this.idPropName] = this.getDocId()
                     
                     batch.create(this.collectionRef
                         .doc(entityClassObject[this.idPropName]), this.query.transformToPlain(entityClassObject))
@@ -113,7 +117,7 @@ export class CollectionRepository<Entity = any> {
                 await this.collectionRef.doc(id).update(this.query.transformToPlain(entityClassObject))
                 return entityClassObject
             } else {
-                entityClassObject[this.idPropName] = this.getId()
+                entityClassObject[this.idPropName] = this.getDocId()
 
                 await this.collectionRef
                     .doc(entityClassObject[this.idPropName])
@@ -133,7 +137,7 @@ export class CollectionRepository<Entity = any> {
                 if (!(entity instanceof this.target))
                     entityClassObject = this.query.transformToClass(this.target, entity)
                 
-                entityClassObject[this.idPropName] = this.getId()
+                entityClassObject[this.idPropName] = this.getDocId()
 
                 batch.create(
                     this.collectionRef.doc(entityClassObject[this.idPropName]), 
@@ -149,7 +153,7 @@ export class CollectionRepository<Entity = any> {
             if (!(partialEntity instanceof this.target))
                 entityClassObject = this.query.transformToClass(this.target, partialEntity)
             
-            entityClassObject[this.idPropName] = this.getId()
+            entityClassObject[this.idPropName] = this.getDocId()
 
             this.collectionRef
                 .doc(entityClassObject[this.idPropName])
