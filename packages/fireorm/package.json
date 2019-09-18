@@ -9,7 +9,6 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@google-cloud/firestore": "^2.2.9",
     "class-transformer": "^0.2.3",
     "class-validator": "^0.10.0",
     "dot-object": "^1.9.0",
@@ -19,7 +18,11 @@
     "reflect-metadata": "^0.1.13",
     "uuid": "^3.3.3"
   },
+  "peerDependencies": {
+    "@google-cloud/firestore": "2.2"
+  },
   "devDependencies": {
+    "@google-cloud/firestore": "^2.2.9",
     "@types/dot-object": "^1.7.0",
     "@types/pluralize": "^0.0.29",
     "@types/ramda": "^0.26.21",
