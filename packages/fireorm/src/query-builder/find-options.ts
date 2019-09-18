@@ -7,6 +7,11 @@ export interface FindOneOptions<Entity = any> {
     relations?: string[]
     order?: { [P in keyof Entity]?: "asc" | "desc" };
     cache?: number | boolean
+
+    startAfter?: any[]
+    startAt?: any[]
+    endBefore?: any[]
+    endAt?: any[]
 }
 
 export interface FindManyOptions<Entity = any> extends FindOneOptions<Entity> {

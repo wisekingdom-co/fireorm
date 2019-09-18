@@ -205,6 +205,21 @@ export class CollectionQuery {
             if (optionsOrConditions.offset) 
                 selfQuery = selfQuery.limit(optionsOrConditions.offset);
 
+            if (optionsOrConditions.offset) 
+                selfQuery = selfQuery.limit(optionsOrConditions.offset);
+
+            if (optionsOrConditions.startAfter) 
+                selfQuery = selfQuery.startAfter(...optionsOrConditions.startAfter)
+            
+            if (optionsOrConditions.startAt) 
+                selfQuery = selfQuery.startAt(...optionsOrConditions.startAt)
+
+            if (optionsOrConditions.endBefore) 
+                selfQuery = selfQuery.endBefore(...optionsOrConditions.endBefore)
+            
+            if (optionsOrConditions.endAt) 
+                selfQuery = selfQuery.endAt(...optionsOrConditions.endAt)
+
             if (optionsOrConditions.relations) 
                 relations = optionsOrConditions.relations
         }
@@ -242,6 +257,18 @@ export class CollectionQuery {
         if (FindOptionsUtils.isFindOneOptions(optionsOrConditions)) {
             if (optionsOrConditions.select)
                 selfQuery = selfQuery.select(...optionsOrConditions.select as any)
+
+            if (optionsOrConditions.startAfter) 
+                selfQuery = selfQuery.startAfter(...optionsOrConditions.startAfter)
+            
+            if (optionsOrConditions.startAt) 
+                selfQuery = selfQuery.startAt(...optionsOrConditions.startAt)
+
+            if (optionsOrConditions.endBefore) 
+                selfQuery = selfQuery.endBefore(...optionsOrConditions.endBefore)
+            
+            if (optionsOrConditions.endAt) 
+                selfQuery = selfQuery.endAt(...optionsOrConditions.endAt)
             
             if (optionsOrConditions.relations)
                 relations = optionsOrConditions.relations
