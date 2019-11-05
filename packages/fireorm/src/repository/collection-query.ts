@@ -157,6 +157,7 @@ export class CollectionQuery {
             })
         }
         return datas.map(data => {
+            if (!data) return data
             return this.transformToClass<Entity>(target, data)
         })
     }
