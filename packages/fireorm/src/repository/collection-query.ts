@@ -84,7 +84,7 @@ export class CollectionQuery {
         return obj
     }
 
-    protected async loadRelations<Entity>(target: EntitySchema<Entity>, docs: DocumentSnapshot[], relations?: string[]) {
+    protected async loadRelations<Entity>(target: EntitySchema<Entity>, docs: (DocumentSnapshot | null)[], relations?: string[]) {
         const relationDocMapping = [] as any[]
         const relationDocCache: { [path: string]: Promise<DocumentSnapshot> | Promise<QuerySnapshot> } = {}
 
@@ -309,7 +309,7 @@ export class CollectionQuery {
         const docRefs = ids.map(id => collectionRef.doc(id))
         const docSnapshots = await (this.tnx ? this.tnx.getAll(...docRefs) : this.firestore.getAll(...docRefs))
 
-        const filterSnapShot = docSnapshots.filter(v => { 
+        const filterSnapShot = docSnapshots.map(v => { 
             if (v.exists) return v
             return null
         })
