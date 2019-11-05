@@ -308,13 +308,15 @@ export class CollectionQuery {
         const docRefs = ids.map(id => collectionRef.doc(id))
         const docSnapshots = await (this.tnx ? this.tnx.getAll(...docRefs) : this.firestore.getAll(...docRefs))
 
+        const filterSnapShot = docSnapshots.filter(v => v.exists)
+
         if (idOrIds instanceof Array) {
-            return this.loadRelations(target, docSnapshots, options && options.relations ? options.relations : [])
+            return this.loadRelations(target, filterSnapShot, options && options.relations ? options.relations : [])
         } else {
-            if (docSnapshots.length === 0 || !docSnapshots[0].exists)
+            if (filterSnapShot.length === 0)
                 return undefined
 
-            const entities = await this.loadRelations(target, docSnapshots, options && options.relations ? options.relations : [])
+            const entities = await this.loadRelations(target, filterSnapShot, options && options.relations ? options.relations : [])
             return entities[0]
         }
     }
