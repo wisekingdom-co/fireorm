@@ -92,6 +92,7 @@ export class CollectionQuery {
         const collectionPath = getMetadataStorage().getCollectionPath(target)
 
         const datas = docs.map((doc, index) => {
+            if (!doc) return null
             const data = { ...doc.data(), [idPropName]: doc.id } as any
 
             if (relations && relations.length > 0) {
@@ -308,7 +309,10 @@ export class CollectionQuery {
         const docRefs = ids.map(id => collectionRef.doc(id))
         const docSnapshots = await (this.tnx ? this.tnx.getAll(...docRefs) : this.firestore.getAll(...docRefs))
 
-        const filterSnapShot = docSnapshots.filter(v => v.exists)
+        const filterSnapShot = docSnapshots.filter(v => { 
+            if (v.exists) return v
+            return null
+        })
 
         if (idOrIds instanceof Array) {
             return this.loadRelations(target, filterSnapShot, options && options.relations ? options.relations : [])
