@@ -1,4 +1,4 @@
-
+import * as R from 'ramda'
 export interface CollectionMetadataArgs {
     path: string
     target: Function
@@ -61,7 +61,7 @@ export class MetadataStorage {
     }
 
     getIdProp(target: Function) {
-        const primaryProp = this.ids.find(idProp => idProp.target === target)
+        const primaryProp = R.find<IdPropertyMetadataArgs>((v) => v.target === target)(this.ids)
         if (!primaryProp) {
             throw new Error("IdPerpertyNotFound")
         }
