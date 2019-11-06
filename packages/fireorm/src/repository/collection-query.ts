@@ -84,7 +84,7 @@ export class CollectionQuery {
         return obj
     }
 
-    protected async loadRelations<Entity>(target: EntitySchema<Entity>, docs: DocumentSnapshot[], relations?: string[]) {
+    protected async loadRelations<Entity>(target: EntitySchema<Entity>, docs: (DocumentSnapshot | null)[], relations?: string[]) {
         const relationDocMapping = [] as any[]
         const relationDocCache: { [path: string]: Promise<DocumentSnapshot> | Promise<QuerySnapshot> } = {}
 
@@ -92,6 +92,7 @@ export class CollectionQuery {
         const collectionPath = getMetadataStorage().getCollectionPath(target)
 
         const datas = docs.map((doc, index) => {
+            if (!doc) return null
             const data = { ...doc.data(), [idPropName]: doc.id } as any
 
             if (relations && relations.length > 0) {
@@ -156,6 +157,7 @@ export class CollectionQuery {
             })
         }
         return datas.map(data => {
+            if (!data) return data
             return this.transformToClass<Entity>(target, data)
         })
     }
@@ -308,13 +310,18 @@ export class CollectionQuery {
         const docRefs = ids.map(id => collectionRef.doc(id))
         const docSnapshots = await (this.tnx ? this.tnx.getAll(...docRefs) : this.firestore.getAll(...docRefs))
 
+        const filterSnapShot = docSnapshots.map(v => { 
+            if (v.exists) return v
+            return null
+        })
+
         if (idOrIds instanceof Array) {
-            return this.loadRelations(target, docSnapshots, options && options.relations ? options.relations : [])
+            return this.loadRelations(target, filterSnapShot, options && options.relations ? options.relations : [])
         } else {
-            if (docSnapshots.length === 0 || !docSnapshots[0].exists)
+            if (filterSnapShot.length === 0)
                 return undefined
 
-            const entities = await this.loadRelations(target, docSnapshots, options && options.relations ? options.relations : [])
+            const entities = await this.loadRelations(target, filterSnapShot, options && options.relations ? options.relations : [])
             return entities[0]
         }
     }
