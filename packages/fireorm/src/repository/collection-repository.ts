@@ -73,6 +73,19 @@ export class CollectionRepository<Entity = any> {
         return CollectionRepository.getRepository(target, this.firestore, subCollectionPath)
     }
 
+    async getSubcollectionDocs<T>(target: EntitySchema<T>, field: keyof Entity, options?: FindManyOptions<T>): Promise<{ parentDoc: Entity, data: T[] }[]> 
+    async getSubcollectionDocs<T>(target: EntitySchema<T>, field: keyof Entity, conditions?: FindConditions<T>): Promise<{ parentDoc: Entity, data: T[] }[]> 
+    async getSubcollectionDocs<T>(target: EntitySchema<T>, field: keyof Entity, optionsOrConditions?: FindManyOptions<T> | FindConditions<T>): Promise<{ parentDoc: Entity, data: T[] }[]> {
+        const groupCollection = this.firestore.collectionGroup(field as string)
+        const d = await this.query.groupCollectionFind(target, groupCollection, optionsOrConditions)
+        return await Promise.all(d.map(async (v): Promise<{ parentDoc: Entity, data: T[] }> => { 
+            return {
+                parentDoc: await this.findByIds(v.parentId) as Entity,
+                data: v.data,
+            }
+        }))
+    }
+
     async save<T extends DeepPartial<Entity>>(entity: T): Promise<T>;
     async save<T extends DeepPartial<Entity>>(entities: T[]): Promise<T[]>;
     async save<T extends DeepPartial<Entity>>(entityOrEntities: T|T[]): Promise<T|T[]> {

@@ -5,6 +5,7 @@ import { EntitySchema } from "../common/entity-schema";
 import { plainToClass, classToPlain } from "class-transformer";
 import { FindConditions } from "../query-builder/find-conditions";
 import { FindManyOptions, FindOneOptions } from "../query-builder";
+import * as R from 'ramda'
 import * as dot from 'dot-object'
 
 export class CollectionQuery {
@@ -164,6 +165,80 @@ export class CollectionQuery {
 
     protected getCollectionnPath<Entity>(target: EntitySchema<Entity>) {
         return this.parentPath ? this.parentPath : getMetadataStorage().getCollectionPath(target)
+    }
+
+    async groupCollectionFind<T>(target: EntitySchema<T>, groupCollectionQuery: FirebaseFirestore.Query, options?: FindManyOptions<T>): Promise<{parentId: string, data: T[]}[]>
+    async groupCollectionFind<T>(target: EntitySchema<T>, groupCollectionQuery: FirebaseFirestore.Query, conditions?: FindConditions<T>): Promise<{parentId: string, data: T[]}[]>
+    async groupCollectionFind<T>(target: EntitySchema<T>, groupCollectionQuery: FirebaseFirestore.Query, optionsOrConditions?: FindManyOptions<T> | FindConditions<T>): Promise<{parentId: string, data: T[]}[]> {
+        let selfQuery = groupCollectionQuery
+
+        const where = this.getFindConditionsFromFindManyOptions(optionsOrConditions);
+        if (where) {
+            const relationMetadatas = getMetadataStorage().relations.filter(item => item.target === target)
+
+            Object.keys(where).forEach((fieldPath) => {
+                const relationMetadata = relationMetadatas.find(item => item.propertyName === fieldPath)
+                if (relationMetadata && !((where as any)[fieldPath] instanceof DocumentReference)) {
+                    const relationCollectionPath = getMetadataStorage().getCollectionPath(relationMetadata.type)
+                    const relationDocumentPath = relationCollectionPath + '/' + (where as any)[fieldPath]
+
+                    selfQuery = selfQuery.where(fieldPath, '==', this.firestore.doc(relationDocumentPath))
+                } else if ((where as any)[fieldPath].type) {
+                    selfQuery = selfQuery.where(fieldPath, (where as any)[fieldPath].type, (where as any)[fieldPath].value)
+                } else {
+                    selfQuery = selfQuery.where(fieldPath, "==", (where as any)[fieldPath])
+                }
+            })
+        }
+
+        let relations: string[] = []
+        if (FindOptionsUtils.isFindManyOptions(optionsOrConditions)) {
+            if (optionsOrConditions.select)
+                selfQuery = selfQuery.select(...optionsOrConditions.select as any)
+            
+            if (optionsOrConditions.order)
+                Object.keys(optionsOrConditions.order).forEach((fieldPath) => {
+                    selfQuery = selfQuery.orderBy(fieldPath, (optionsOrConditions.order as any)[fieldPath])
+                })
+            
+            if (optionsOrConditions.limit)
+                selfQuery = selfQuery.limit(optionsOrConditions.limit);
+            
+            if (optionsOrConditions.offset) 
+                selfQuery = selfQuery.limit(optionsOrConditions.offset);
+
+            if (optionsOrConditions.offset) 
+                selfQuery = selfQuery.limit(optionsOrConditions.offset);
+
+            if (optionsOrConditions.startAfter) 
+                selfQuery = selfQuery.startAfter(...optionsOrConditions.startAfter)
+            
+            if (optionsOrConditions.startAt) 
+                selfQuery = selfQuery.startAt(...optionsOrConditions.startAt)
+
+            if (optionsOrConditions.endBefore) 
+                selfQuery = selfQuery.endBefore(...optionsOrConditions.endBefore)
+            
+            if (optionsOrConditions.endAt) 
+                selfQuery = selfQuery.endAt(...optionsOrConditions.endAt)
+
+            if (optionsOrConditions.relations) 
+                relations = optionsOrConditions.relations
+        }
+
+        const querySnapshot = await (this.tnx ? this.tnx.get(selfQuery) : selfQuery.get())
+        const parentGroup = R.groupBy(v => { 
+            const parent = v.ref.parent.parent as DocumentReference
+            return parent.id
+        }, querySnapshot.docs)
+        const parentIds = Object.keys(parentGroup)
+        return await Promise.all(parentIds.map(async (v): Promise<{ parentId: string, data: T[] }> => { 
+            return {
+                parentId: v,
+                data: await this.loadRelations(target, parentGroup[v], relations)
+            }
+        }))
+        // return this.loadRelations(target, querySnapshot.docs, relations)
     }
 
     async find<Entity>(target: EntitySchema<Entity>, options?: FindManyOptions<Entity>): Promise<Entity[]>
