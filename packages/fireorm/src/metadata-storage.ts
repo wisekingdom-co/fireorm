@@ -8,7 +8,7 @@ export interface CollectionMetadataArgs {
 export interface IdPropertyMetadataArgs {
     target: Function
     propertyName: string
-    strategy: "uuid/v1" | 'uuid/v4' | 'auto' | (() => string)
+    strategy: "uuid/v1" | 'uuid/v4' | 'auto' | 'manual' | (() => string)
 }
 
 export interface PropertyMetadataArgs {
@@ -83,6 +83,9 @@ export class MetadataStorage {
         }
         if (primaryProp.strategy === "uuid/v4") {
             return require('uuid/v4')()
+        }
+        if (primaryProp.strategy === 'manual') {
+            return 'manual'    
         }
         return undefined
     }

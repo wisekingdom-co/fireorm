@@ -1,4 +1,5 @@
 import { Firestore, WriteResult, CollectionReference } from '@google-cloud/firestore'
+import * as R from 'ramda'
 import { classToClass } from 'class-transformer'
 import { getMetadataStorage } from '../metadata-storage';
 import { DeepPartial } from '../common/deep-partial';
@@ -53,6 +54,9 @@ export class CollectionRepository<Entity = any> {
 
     getDocId(): string {
         const id = getMetadataStorage().getIdGenerataValue(this.target)
+        if (id === 'manual') { 
+            return ''
+        }
         if (id) {
             return id
         }
@@ -93,7 +97,7 @@ export class CollectionRepository<Entity = any> {
                     batch.update(this.collectionRef.doc(id), this.query.transformToPlain(entityClassObject))
                     return entityClassObject
                 } else {
-                    entityClassObject[this.idPropName] = this.getDocId()
+                    entityClassObject[this.idPropName] = !R.isEmpty(this.getDocId()) ? this.getDocId() : entityClassObject[this.idPropName]
                     
                     batch.create(this.collectionRef
                         .doc(entityClassObject[this.idPropName]), this.query.transformToPlain(entityClassObject))
@@ -117,7 +121,7 @@ export class CollectionRepository<Entity = any> {
                 await this.collectionRef.doc(id).update(this.query.transformToPlain(entityClassObject))
                 return entityClassObject
             } else {
-                entityClassObject[this.idPropName] = this.getDocId()
+                entityClassObject[this.idPropName] = !R.isEmpty(this.getDocId()) ? this.getDocId() : entityClassObject[this.idPropName]
 
                 await this.collectionRef
                     .doc(entityClassObject[this.idPropName])
@@ -137,7 +141,7 @@ export class CollectionRepository<Entity = any> {
                 if (!(entity instanceof this.target))
                     entityClassObject = this.query.transformToClass(this.target, entity)
                 
-                entityClassObject[this.idPropName] = this.getDocId()
+                entityClassObject[this.idPropName] = !R.isEmpty(this.getDocId()) ? this.getDocId() : entityClassObject[this.idPropName]
 
                 batch.create(
                     this.collectionRef.doc(entityClassObject[this.idPropName]), 
@@ -153,7 +157,7 @@ export class CollectionRepository<Entity = any> {
             if (!(partialEntity instanceof this.target))
                 entityClassObject = this.query.transformToClass(this.target, partialEntity)
             
-            entityClassObject[this.idPropName] = this.getDocId()
+            entityClassObject[this.idPropName] = !R.isEmpty(this.getDocId()) ? this.getDocId() : entityClassObject[this.idPropName]
 
             this.collectionRef
                 .doc(entityClassObject[this.idPropName])
