@@ -1,8 +1,8 @@
-import { FindOneOptions, FindManyOptions } from "./find-options";
+import { FindOneOptions, FindManyOptions } from "./find-options"
 
 export class FindOptionsUtils {
     static isFindOneOptions(obj: any): obj is FindOneOptions<any> {
-        const possibleOptions: FindOneOptions<any> = obj;
+        const possibleOptions: FindOneOptions<any> = obj
         return possibleOptions &&
                 (
                     possibleOptions.where instanceof Object ||
@@ -11,15 +11,15 @@ export class FindOptionsUtils {
                     possibleOptions.order instanceof Object ||
                     typeof possibleOptions.cache === "boolean" ||
                     typeof possibleOptions.cache === "number"
-                );
+                )
     }
 
     static isFindManyOptions(obj: any): obj is FindManyOptions<any> {
-        const possibleOptions: FindManyOptions<any> = obj;
+        const possibleOptions: FindManyOptions<any> = obj
         return possibleOptions && (
             this.isFindOneOptions(possibleOptions) ||
             typeof (possibleOptions as FindManyOptions<any>).limit === "number" ||
             typeof (possibleOptions as FindManyOptions<any>).offset === "number"
-        );
+        )
     }
 }
