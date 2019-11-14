@@ -1,6 +1,6 @@
 {
   "name": "@isman/nest-fireorm",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
   "license": "MIT",
@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@isman/fireorm": "^0.7.2",
+    "@isman/fireorm": "^0.8.0",
     "reflect-metadata": "^0.1.13"
   },
   "devDependencies": {
