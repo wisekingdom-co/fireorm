@@ -1,8 +1,8 @@
-import { Global, Module, DynamicModule } from "@nestjs/common";
-import { FIRESTORE_INSTANCT } from "./fireorm.constants";
-import { Firestore } from "@google-cloud/firestore";
-import { FireOrmModuleOptions, FireOrmModuleAsyncOptions } from "./fireorm-options";
-import { FactoryProvider } from "@nestjs/common/interfaces";
+import { Global, Module, DynamicModule } from "@nestjs/common"
+import { FIRESTORE_INSTANCT } from "./fireorm.constants"
+import { Firestore } from "@google-cloud/firestore"
+import { FireOrmModuleOptions, FireOrmModuleAsyncOptions } from "./fireorm-options"
+import { FactoryProvider } from "@nestjs/common/interfaces"
 
 @Global()
 @Module({})

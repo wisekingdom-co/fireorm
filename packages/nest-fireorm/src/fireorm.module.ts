@@ -1,7 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common'
-import { FireOrmModuleOptions, FireOrmModuleAsyncOptions } from './fireorm-options';
-import { FirestoreModule } from './firestore.module';
-import { FireOrmFeatureOptions, createCollectionProviders } from './fireorm.providers';
+import { FireOrmModuleOptions, FireOrmModuleAsyncOptions } from './fireorm-options'
+import { FirestoreModule } from './firestore.module'
+import { FireOrmFeatureOptions, createCollectionProviders } from './fireorm.providers'
 
 @Module({})
 export class FireOrmModule {
