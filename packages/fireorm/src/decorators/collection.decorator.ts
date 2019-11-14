@@ -1,10 +1,10 @@
 import { getMetadataStorage, CollectionMetadataArgs } from "../metadata-storage"
-import { plural } from 'pluralize';
+import { plural } from 'pluralize'
 
 function getCollectionPath(entityName: string) {
     return plural(entityName
         .replace(/[\w]([A-Z])/g, m => {
-            return m[0] + "_" + m[1];
+            return m[0] + "_" + m[1]
         })
         .toLowerCase()
         .replace("_entity",'')

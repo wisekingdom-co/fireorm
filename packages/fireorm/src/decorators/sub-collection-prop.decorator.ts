@@ -1,7 +1,7 @@
-import { ObjectType } from "../common";
-import { getMetadataStorage, PropertyMetadataArgs } from "../metadata-storage";
-import { Transform } from "class-transformer";
-import { TransformationType } from "class-transformer/TransformOperationExecutor";
+import { ObjectType } from "../common"
+import { getMetadataStorage, PropertyMetadataArgs } from "../metadata-storage"
+import { Transform } from "class-transformer"
+import { TransformationType } from "class-transformer/TransformOperationExecutor"
 
 export function SubCollectionProp<T>(type: () => ObjectType<T>): Function {
     return function (object: Object, propertyName: string) {

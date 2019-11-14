@@ -1,6 +1,6 @@
-import { getMetadataStorage, RelationMetadataArgs } from "../metadata-storage";
-import { Transform, TransformationType } from "class-transformer";
-import { ObjectType } from "../common";
+import { getMetadataStorage, RelationMetadataArgs } from "../metadata-storage"
+import { Transform, TransformationType } from "class-transformer"
+import { ObjectType } from "../common"
 import * as R from 'ramda'
 
 export function ManyToOne<T>(typeFunc: () => ObjectType<T>, collectionType?: () => ObjectType<T>, inverseSide?: string): Function {

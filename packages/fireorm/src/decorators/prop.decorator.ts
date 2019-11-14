@@ -1,5 +1,5 @@
-import { getMetadataStorage, PropertyMetadataArgs, EmbeddedMetadataArgs } from "../metadata-storage";
-import { Type, Transform } from "class-transformer";
+import { getMetadataStorage, PropertyMetadataArgs, EmbeddedMetadataArgs } from "../metadata-storage"
+import { Type, Transform } from "class-transformer"
 import { IsString, IsDecimal, IsInt, IsNumber, MinLength, MaxLength, Min, Max, IsEnum, IsArray, ArrayMaxSize, ArrayMinSize } from 'class-validator'
 import * as R from 'ramda'
 
@@ -30,23 +30,23 @@ export interface DatePropertyOptions extends CommonPropertyOptions {
 
 export type PropertyOptions = CommonPropertyOptions & StringPropertyOptions & NumberPropertyOptions & DatePropertyOptions 
 
-export function Prop(): Function;
+export function Prop(): Function
 
-export function Prop(type?: 'string', options?: StringPropertyOptions): Function;
+export function Prop(type?: 'string', options?: StringPropertyOptions): Function
 
-export function Prop(type?: 'number' | 'float' | 'integer', options?: NumberPropertyOptions): Function;
+export function Prop(type?: 'number' | 'float' | 'integer', options?: NumberPropertyOptions): Function
 
-export function Prop(type?: 'date', options?: DatePropertyOptions): Function;
+export function Prop(type?: 'date', options?: DatePropertyOptions): Function
 
-export function Prop(type?: 'boolean', options?: CommonPropertyOptions): Function;
+export function Prop(type?: 'boolean', options?: CommonPropertyOptions): Function
 
-export function Prop(type?: (type?: any) => Function): Function;
+export function Prop(type?: (type?: any) => Function): Function
 
 export function Prop(type?: SimpleColumnType | ((type?: any) => Function), options: PropertyOptions = {}): Function {
     return function (object: Object, propertyName: string) {
         const isArray = Reflect.getMetadata("design:type", object, propertyName).name === 'Array'
         if (!type) {
-            type = Reflect.getMetadata("design:type", object, propertyName).name.toLowerCase();
+            type = Reflect.getMetadata("design:type", object, propertyName).name.toLowerCase()
         }
 
         if (!R.isNil(options.default)) {
@@ -73,7 +73,7 @@ export function Prop(type?: SimpleColumnType | ((type?: any) => Function), optio
                 target: object.constructor,
                 propertyName: propertyName,
                 type: type,
-            } as EmbeddedMetadataArgs);
+            } as EmbeddedMetadataArgs)
         }
 
         getMetadataStorage().properties.push({
@@ -81,7 +81,7 @@ export function Prop(type?: SimpleColumnType | ((type?: any) => Function), optio
             propertyName: propertyName,
             type: type,
             embedded: typeof type === 'function',
-        } as PropertyMetadataArgs);
+        } as PropertyMetadataArgs)
     }
 }
 

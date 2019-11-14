@@ -1,5 +1,7 @@
+import { Firestore } from "@google-cloud/firestore"
 
 export interface CollectionMetadataArgs {
+    parentTarget?: Function
     path: string
     target: Function
     prefix?: string
@@ -8,7 +10,8 @@ export interface CollectionMetadataArgs {
 export interface IdPropertyMetadataArgs {
     target: Function
     propertyName: string
-    strategy: "uuid/v1" | 'uuid/v4' | 'auto' | (() => string)
+    strategy?: "uuid/v1" | 'uuid/v4' | 'auto' | (() => string)
+    generated: boolean
 }
 
 export interface PropertyMetadataArgs {
@@ -43,7 +46,7 @@ export class MetadataStorage {
     getCollection (target: Function) {
         const collection = this.collections.find(collection => collection.target === target)
         if (!collection) {
-            throw new Error("CollectionNotFound")
+            throw new Error(`Collection not found, entity: ${target.name}`)
         }
         return collection
     }
@@ -51,7 +54,7 @@ export class MetadataStorage {
     getCollectionPath (target: Function) {
         const collection = this.collections.find(collection => collection.target === target)
         if (!collection) {
-            throw new Error("CollectionNotFound" + target)
+            throw new Error(`Collection not found, entity: ${target.name}`)
         }
         return (collection.prefix ? collection.prefix : '') + collection.path
     }
@@ -63,7 +66,7 @@ export class MetadataStorage {
     getIdProp(target: Function) {
         const primaryProp = this.ids.find(idProp => idProp.target === target)
         if (!primaryProp) {
-            throw new Error("IdPerpertyNotFound")
+            throw new Error(`Id perperty not found, entity: ${target.name}`)
         }
         return primaryProp
     }
@@ -73,28 +76,31 @@ export class MetadataStorage {
         return primaryProp.propertyName
     }
 
-    getIdGenerataValue(target: Function) {
+    getIdGenerataValue(target: Function, firestore: Firestore) {
         const primaryProp = this.getIdProp(target)
-        if (typeof primaryProp.strategy === 'function') {
-            return primaryProp.strategy()
-        }
-        if (primaryProp.strategy === "uuid/v1") {
-            return require('uuid/v1')()
-        }
-        if (primaryProp.strategy === "uuid/v4") {
-            return require('uuid/v4')()
+        if (primaryProp.generated) {
+            if (typeof primaryProp.strategy === 'function') {
+                return primaryProp.strategy()
+            } else if (primaryProp.strategy === "uuid/v1") {
+                return require('uuid/v1')()
+            } else if (primaryProp.strategy === "uuid/v4") {
+                return require('uuid/v4')()
+            } else {
+                const collectionPath = getMetadataStorage().getCollectionPath(target)
+                return firestore.collection(collectionPath).doc().id
+            }
         }
         return undefined
     }
 }
 
 
-let store: MetadataStorage;
+let store: MetadataStorage
 
 export const getMetadataStorage = (): MetadataStorage => {
     if (!store) {
         store = new MetadataStorage()
     }
   
-    return store;
-};
+    return store
+}

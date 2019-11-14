@@ -1,11 +1,11 @@
-import { FieldValue } from "@google-cloud/firestore";
+import { FieldValue } from "@google-cloud/firestore"
 
 /**
  * Make all properties in T optional
  */
 export type QueryPartialEntity<T> = {
-    [P in keyof T]?: T[P] | (() => string);
-};
+    [P in keyof T]?: T[P] | (() => string)
+}
 
 export type QueryDotNotationPartialEntity = {
     [name: string]: string | Date | typeof FieldValue
@@ -20,5 +20,5 @@ export type QueryDeepPartialEntity<T> = {
             ? Array<QueryDeepPartialEntity<U>> 
             : T[P] extends ReadonlyArray<infer U>
                 ? ReadonlyArray<QueryDeepPartialEntity<U>> 
-                : QueryDeepPartialEntity<T[P]> | (() => string) | typeof FieldValue;
-};
+                : QueryDeepPartialEntity<T[P]> | (() => string) | typeof FieldValue
+}

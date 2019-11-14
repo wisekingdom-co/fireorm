@@ -1,22 +1,22 @@
-import { Firestore, Transaction } from "@google-cloud/firestore";
-import { FindOptionsUtils } from "../query-builder/find-options-utils";
-import { EntitySchema } from "../common/entity-schema";
-import { getMetadataStorage } from "../metadata-storage";
-import { QueryDeepPartialEntity, QueryDotNotationPartialEntity } from "../query-builder/query-partial-entity";
-import { classToPlain, plainToClass } from "class-transformer";
-import { FindConditions, FindManyOptions, FindOneOptions } from "../query-builder";
-import { CollectionQuery } from "./collection-query";
+import { Firestore, Transaction } from "@google-cloud/firestore"
+import { FindOptionsUtils } from "../query-builder/find-options-utils"
+import { EntitySchema } from "../common/entity-schema"
+import { getMetadataStorage } from "../metadata-storage"
+import { QueryDeepPartialEntity, QueryDotNotationPartialEntity } from "../query-builder/query-partial-entity"
+import { classToPlain, plainToClass } from "class-transformer"
+import { FindConditions, FindManyOptions, FindOneOptions } from "../query-builder"
+import { CollectionQuery } from "./collection-query"
 
 const { FieldTransform } = require('@google-cloud/firestore/build/src/field-value')
 
 export class TransactionRepository extends CollectionQuery {
     constructor(protected firestore: Firestore, protected parentPath: string, protected tnx: Transaction) {
-        super(firestore, parentPath, tnx)
+        super(firestore, { parentPath, tnx })
     }
 
     protected getFindConditionsFromFindManyOptions<Entity>(optionsOrConditions: string | FindManyOptions<Entity> | FindConditions<Entity> | undefined): FindConditions<Entity> | undefined {
         if (!optionsOrConditions)
-            return undefined;
+            return undefined
 
         if (FindOptionsUtils.isFindManyOptions(optionsOrConditions))
             return optionsOrConditions.where as FindConditions<Entity> 
@@ -26,7 +26,7 @@ export class TransactionRepository extends CollectionQuery {
 
     protected getFindConditionsFromFindOneOptions<Entity>(optionsOrConditions: string | FindOneOptions<Entity> | FindConditions<Entity> | undefined): FindConditions<Entity> | undefined {
         if (!optionsOrConditions)
-            return undefined;
+            return undefined
 
         if (FindOptionsUtils.isFindOneOptions(optionsOrConditions))
             return optionsOrConditions.where as FindConditions<Entity> 
@@ -55,12 +55,7 @@ export class TransactionRepository extends CollectionQuery {
     }
 
     getId<Entity>(target: EntitySchema<Entity>): string {
-        const id = getMetadataStorage().getIdGenerataValue(target)
-        if (id) {
-            id
-        }
-        const collectionPath = getMetadataStorage().getCollectionPath(target)
-        return this.firestore.collection(collectionPath).doc().id
+        return getMetadataStorage().getIdGenerataValue(target, this.firestore)
     }
 
     async create<Entity>(target: EntitySchema<Entity>, partialEntity: QueryDeepPartialEntity<Entity> | QueryDeepPartialEntity<Entity>[]): Promise<Entity[] | Entity> {
@@ -89,7 +84,11 @@ export class TransactionRepository extends CollectionQuery {
             
             const newId = this.getId(target)
             const entityPlainObject: any = classToPlain(entityClassObject)
-            entityPlainObject[idPropName] = newId
+            if (newId) {
+                entityPlainObject[idPropName] = newId
+            }  else if (!entityPlainObject[idPropName]) {
+                throw new Error(`Id properties cannot undefined. entity: ${target.name}, property: ${idPropName}`)
+            }
 
             this.tnx.create(collectionRef.doc(newId), entityPlainObject)
             return plainToClass(target, entityPlainObject)

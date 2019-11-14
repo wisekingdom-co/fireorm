@@ -1,19 +1,20 @@
 import { Firestore, WriteResult, CollectionReference } from '@google-cloud/firestore'
 import { classToClass } from 'class-transformer'
-import { getMetadataStorage } from '../metadata-storage';
-import { DeepPartial } from '../common/deep-partial';
-import { EntitySchema } from '../common/entity-schema';
-import { TransactionRepository } from './transaction-repository';
-import { QueryDeepPartialEntity, QueryDotNotationPartialEntity } from '../query-builder/query-partial-entity';
-import { FindManyOptions, FindOneOptions } from '../query-builder/find-options';
-import { FindConditions } from '../query-builder/find-conditions';
-import { CollectionQuery } from './collection-query';
+import { getMetadataStorage } from '../metadata-storage'
+import { DeepPartial } from '../common/deep-partial'
+import { EntitySchema } from '../common/entity-schema'
+import { TransactionRepository } from './transaction-repository'
+import { QueryDeepPartialEntity, QueryDotNotationPartialEntity } from '../query-builder/query-partial-entity'
+import { FindManyOptions, FindOneOptions } from '../query-builder/find-options'
+import { FindConditions } from '../query-builder/find-conditions'
+import { CollectionQuery } from './collection-query'
 
 const { FieldTransform } = require('@google-cloud/firestore/build/src/field-value')
 
 export class CollectionRepository<Entity = any> {
     static getRepository<Entity>(target: EntitySchema<Entity>, firestore: Firestore, parentPath?: string): CollectionRepository<Entity> {
-        return new CollectionRepository<Entity>(target, firestore, new CollectionQuery(firestore, parentPath), parentPath)
+        const query = new CollectionQuery(firestore, { parentPath })
+        return new CollectionRepository<Entity>(target, firestore, query, parentPath)
     }
 
     protected idPropName: string
@@ -52,12 +53,7 @@ export class CollectionRepository<Entity = any> {
     }
 
     getDocId(): string {
-        const id = getMetadataStorage().getIdGenerataValue(this.target)
-        if (id) {
-            return id
-        }
-        const collectionPath = getMetadataStorage().getCollectionPath(this.target)
-        return this.firestore.collection(collectionPath).doc().id
+        return getMetadataStorage().getIdGenerataValue(this.target, this.firestore)
     }
 
     getDocRef(docId?: string) {
@@ -73,8 +69,8 @@ export class CollectionRepository<Entity = any> {
         return CollectionRepository.getRepository(target, this.firestore, subCollectionPath)
     }
 
-    async save<T extends DeepPartial<Entity>>(entity: T): Promise<T>;
-    async save<T extends DeepPartial<Entity>>(entities: T[]): Promise<T[]>;
+    async save<T extends DeepPartial<Entity>>(entity: T): Promise<T>
+    async save<T extends DeepPartial<Entity>>(entities: T[]): Promise<T[]>
     async save<T extends DeepPartial<Entity>>(entityOrEntities: T|T[]): Promise<T|T[]> {
         if (entityOrEntities instanceof Array) {
             const batch = this.firestore.batch()
@@ -93,15 +89,19 @@ export class CollectionRepository<Entity = any> {
                     batch.update(this.collectionRef.doc(id), this.query.transformToPlain(entityClassObject))
                     return entityClassObject
                 } else {
-                    entityClassObject[this.idPropName] = this.getDocId()
+                    const newId = this.getDocId()
+                    if (newId) {
+                        entityClassObject[this.idPropName] = newId
+                    } else if (!entityClassObject[this.idPropName]) {
+                        throw new Error(`Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`)
+                    }
                     
-                    batch.create(this.collectionRef
-                        .doc(entityClassObject[this.idPropName]), this.query.transformToPlain(entityClassObject))
+                    batch.create(this.collectionRef.doc(entityClassObject[this.idPropName]), this.query.transformToPlain(entityClassObject))
                     return entityClassObject
                 }
             })
             await batch.commit()
-            return docs;
+            return docs
         } else {
             let entityClassObject = entityOrEntities as any
             if (!(entityOrEntities instanceof this.target)) {
@@ -117,7 +117,12 @@ export class CollectionRepository<Entity = any> {
                 await this.collectionRef.doc(id).update(this.query.transformToPlain(entityClassObject))
                 return entityClassObject
             } else {
-                entityClassObject[this.idPropName] = this.getDocId()
+                const newId = this.getDocId()
+                if (newId) {
+                    entityClassObject[this.idPropName] = newId
+                } else if (!entityClassObject[this.idPropName]) {
+                    throw new Error(`Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`)
+                }
 
                 await this.collectionRef
                     .doc(entityClassObject[this.idPropName])

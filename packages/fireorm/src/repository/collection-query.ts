@@ -1,18 +1,27 @@
-import { Firestore, Query, Timestamp, GeoPoint, DocumentReference, FieldValue, DocumentSnapshot, Transaction, QuerySnapshot } from "@google-cloud/firestore";
-import { FindOptionsUtils } from "../query-builder/find-options-utils";
-import { getMetadataStorage } from "../metadata-storage";
-import { EntitySchema } from "../common/entity-schema";
-import { plainToClass, classToPlain } from "class-transformer";
-import { FindConditions } from "../query-builder/find-conditions";
-import { FindManyOptions, FindOneOptions } from "../query-builder";
+import { Firestore, Query, Timestamp, GeoPoint, DocumentReference, DocumentSnapshot, Transaction, QuerySnapshot } from "@google-cloud/firestore"
+import { FindOptionsUtils } from "../query-builder/find-options-utils"
+import { getMetadataStorage } from "../metadata-storage"
+import { EntitySchema } from "../common/entity-schema"
+import { plainToClass, classToPlain } from "class-transformer"
+import { FindConditions } from "../query-builder/find-conditions"
+import { FindManyOptions, FindOneOptions } from "../query-builder"
 import * as dot from 'dot-object'
 
+export interface CollectionQueryOption {
+    collectionId?: string
+    parentPath?: string
+    tnx?: Transaction
+}
+
 export class CollectionQuery {
-    constructor(protected firestore: Firestore, protected parentPath?: string, protected tnx?: Transaction) {}
+    constructor(
+        protected firestore: Firestore,
+        protected options: CollectionQueryOption = {}
+    ) {}
 
     protected getFindConditionsFromFindManyOptions<Entity>(optionsOrConditions: string | FindManyOptions<Entity> | FindConditions<Entity> | undefined): FindConditions<Entity> | undefined {
         if (!optionsOrConditions)
-            return undefined;
+            return undefined
 
         if (FindOptionsUtils.isFindManyOptions(optionsOrConditions))
             return optionsOrConditions.where as FindConditions<Entity> 
@@ -22,7 +31,7 @@ export class CollectionQuery {
 
     protected getFindConditionsFromFindOneOptions<Entity>(optionsOrConditions: string | FindOneOptions<Entity> | FindConditions<Entity> | undefined): FindConditions<Entity> | undefined {
         if (!optionsOrConditions)
-            return undefined;
+            return undefined
 
         if (FindOptionsUtils.isFindOneOptions(optionsOrConditions))
             return optionsOrConditions.where as FindConditions<Entity> 
@@ -31,7 +40,7 @@ export class CollectionQuery {
     }
 
     transformToClass<Entity>(target: EntitySchema<Entity>, obj: any): Entity {
-        return plainToClass(target, this.convertToJsObject(obj));
+        return plainToClass(target, this.convertToJsObject(obj))
     }
 
     transformToPlain<Entity>(obj: Entity) {
@@ -41,18 +50,18 @@ export class CollectionQuery {
     protected convertToJsObject(obj: any) {
         Object.keys(obj).forEach(key => {
             if (!obj[key]) 
-                return;
+                return
             if (obj[key] instanceof DocumentReference) {
                 obj[key] = obj[key].id
             } else if (typeof obj[key] === 'object' && 'toDate' in obj[key]) {
-                obj[key] = obj[key].toDate();
+                obj[key] = obj[key].toDate()
             } else if (obj[key].constructor.name === 'GeoPoint') {
-                const { latitude, longitude } = obj[key];
-                obj[key] = { latitude, longitude };
+                const { latitude, longitude } = obj[key]
+                obj[key] = { latitude, longitude }
             } else if (typeof obj[key] === 'object') {
-                this.convertToJsObject(obj[key]);
+                this.convertToJsObject(obj[key])
             }
-        });
+        })
         return obj
     }
 
@@ -162,17 +171,21 @@ export class CollectionQuery {
         })
     }
 
-    protected getCollectionnPath<Entity>(target: EntitySchema<Entity>) {
-        return this.parentPath ? this.parentPath : getMetadataStorage().getCollectionPath(target)
+    protected getQuery<Entity>(target: EntitySchema<Entity>): Query {
+        if (this.options.collectionId) {
+            return this.firestore.collectionGroup(this.options.collectionId)
+        } else {
+            const collectionPath = getMetadataStorage().getCollectionPath(target)
+            return this.firestore.collectionGroup(collectionPath)
+        }
     }
 
     async find<Entity>(target: EntitySchema<Entity>, options?: FindManyOptions<Entity>): Promise<Entity[]>
     async find<Entity>(target: EntitySchema<Entity>, conditions?: FindConditions<Entity>): Promise<Entity[]>
     async find<Entity>(target: EntitySchema<Entity>, optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<Entity[]> {
-        const collectionPath = this.getCollectionnPath(target)
-        let selfQuery = this.firestore.collection(collectionPath) as Query
+        let selfQuery = this.getQuery(target)
 
-        const where = this.getFindConditionsFromFindManyOptions(optionsOrConditions);
+        const where = this.getFindConditionsFromFindManyOptions(optionsOrConditions)
         if (where) {
             const relationMetadatas = getMetadataStorage().relations.filter(item => item.target === target)
 
@@ -202,13 +215,13 @@ export class CollectionQuery {
                 })
             
             if (optionsOrConditions.limit)
-                selfQuery = selfQuery.limit(optionsOrConditions.limit);
+                selfQuery = selfQuery.limit(optionsOrConditions.limit)
             
             if (optionsOrConditions.offset) 
-                selfQuery = selfQuery.limit(optionsOrConditions.offset);
+                selfQuery = selfQuery.limit(optionsOrConditions.offset)
 
             if (optionsOrConditions.offset) 
-                selfQuery = selfQuery.limit(optionsOrConditions.offset);
+                selfQuery = selfQuery.limit(optionsOrConditions.offset)
 
             if (optionsOrConditions.startAfter) 
                 selfQuery = selfQuery.startAfter(...optionsOrConditions.startAfter)
@@ -226,17 +239,16 @@ export class CollectionQuery {
                 relations = optionsOrConditions.relations
         }
 
-        const querySnapshot = await (this.tnx ? this.tnx.get(selfQuery) : selfQuery.get())
+        const querySnapshot = await (this.options.tnx ? this.options.tnx.get(selfQuery) : selfQuery.get())
         return this.loadRelations(target, querySnapshot.docs, relations)
     }
 
     async findOne<Entity>(target: EntitySchema<Entity>, options?: FindOneOptions<Entity>): Promise<Entity | undefined>
     async findOne<Entity>(target: EntitySchema<Entity>, conditions?: FindConditions<Entity>): Promise<Entity | undefined>
     async findOne<Entity>(target: EntitySchema<Entity>, optionsOrConditions?: FindOneOptions<Entity> | FindConditions<Entity>): Promise<Entity | undefined> {
-        const collectionPath = this.getCollectionnPath(target)
-        let selfQuery: Query = this.firestore.collection(collectionPath)
+        let selfQuery = this.getQuery(target)
 
-        const where = this.getFindConditionsFromFindOneOptions(optionsOrConditions);
+        const where = this.getFindConditionsFromFindOneOptions(optionsOrConditions)
         if (where) {
             const relationMetadatas = getMetadataStorage().relations.filter(item => item.target === target)
 
@@ -281,7 +293,7 @@ export class CollectionQuery {
                 })
         }
 
-        const querySnapshot = await (this.tnx ? this.tnx.get(selfQuery.limit(1)) : selfQuery.limit(1).get())
+        const querySnapshot = await (this.options.tnx ? this.options.tnx.get(selfQuery.limit(1)) : selfQuery.limit(1).get())
         if (querySnapshot.docs.length === 0 || !querySnapshot.docs[0].exists)
             return undefined
 
@@ -294,7 +306,7 @@ export class CollectionQuery {
     async findOneOrFail<Entity>(target: EntitySchema<Entity>, optionsOrConditions?: FindOneOptions<Entity> | FindConditions<Entity>): Promise<Entity> {
         return this.findOne<Entity>(target, optionsOrConditions).then(value => {
             if (value === undefined) {
-                return Promise.reject(new Error('EntityNotFoundError'))
+                return Promise.reject(new Error(`Entity not found, entity: ${target.name}`))
             }
             return Promise.resolve(value)
         })
@@ -303,12 +315,15 @@ export class CollectionQuery {
     async findByIds<Entity>(target: EntitySchema<Entity>, id: string, options?: FindOneOptions<Entity>): Promise<Entity | undefined>
     async findByIds<Entity>(target: EntitySchema<Entity>, ids: string[], options?: FindOneOptions<Entity>): Promise<(Entity | undefined)[]>
     async findByIds<Entity>(target: EntitySchema<Entity>, idOrIds: string | string[], options?: FindOneOptions<Entity>): Promise<(Entity | undefined) | (Entity | undefined)[]> {
-        const collectionPath = this.getCollectionnPath(target)
+        if (this.options.collectionId) {
+            throw new Error('findByIds not support CollectionGroup')
+        }
+        const collectionPath = this.options.parentPath ? this.options.parentPath : getMetadataStorage().getCollectionPath(target)
         const collectionRef = this.firestore.collection(collectionPath)
         const ids = idOrIds instanceof Array ? idOrIds : [idOrIds]
 
         const docRefs = ids.map(id => collectionRef.doc(id))
-        const docSnapshots = await (this.tnx ? this.tnx.getAll(...docRefs) : this.firestore.getAll(...docRefs))
+        const docSnapshots = await (this.options.tnx ? this.options.tnx.getAll(...docRefs) : this.firestore.getAll(...docRefs))
 
         const filterSnapShot = docSnapshots.map(v => { 
             if (v.exists) return v

@@ -1,6 +1,6 @@
 
-import { getMetadataStorage } from "../metadata-storage";
-import { ObjectType } from "../common";
+import { getMetadataStorage } from "../metadata-storage"
+import { ObjectType } from "../common"
 
 export function OneToMany<T>(typeFunc: () => ObjectType<T>, inverseSide: keyof T): Function {
     return function (object: Object, propertyName: string) {
