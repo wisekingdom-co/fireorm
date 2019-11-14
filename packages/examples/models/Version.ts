@@ -1,7 +1,7 @@
-import { IdProp, Prop } from "../../fireorm/src";
-import { SubCollection } from "../../fireorm/src/decorators";
+import { IdProp, Prop, SubCollection } from "../../fireorm/src"
+import { User } from "./User";
 
-@SubCollection()
+@SubCollection(() => User, 'version')
 export class Version {
     @IdProp()
     id: string

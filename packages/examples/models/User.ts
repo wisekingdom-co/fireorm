@@ -1,6 +1,6 @@
-import { Collection, IdProp, Prop, ManyToOne, Ref } from "../../fireorm/src";
+import { Collection, Prop, ManyToOne, Ref, IdGeneratedProp } from "../../fireorm/src"
 import { App } from './App'
-import { Version } from "./Version";
+import { Version } from "./Version"
 
 export class AddessEmbed {
     @Prop()
@@ -23,7 +23,7 @@ export class ContactEmbed {
 
 @Collection("users", { prefix: "example_" })
 export class User {
-    @IdProp("uuid/v1")
+    @IdGeneratedProp("uuid/v1")
     id: string
 
     @Prop() 

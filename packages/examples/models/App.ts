@@ -1,6 +1,6 @@
-import { Collection, IdProp, Prop, OneToMany, SubCollectionProp } from "../../fireorm/src";
+import { Collection, IdProp, Prop, OneToMany, SubCollectionProp } from "../../fireorm/src"
 import { User } from './User'
-import { Version } from "./Version";
+import { Version } from "./Version"
 
 @Collection("apps", { prefix: "example_" })
 export class App {

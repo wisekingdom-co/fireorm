@@ -1,7 +1,7 @@
 import 'reflect-metadata'
-import { Firestore } from '@google-cloud/firestore';
-import { CollectionRepository } from '../fireorm/src';
-import { User } from './models/User';
+import { Firestore } from '@google-cloud/firestore'
+import { CollectionRepository } from '../fireorm/src'
+import { User } from './models/User'
 
 const firestore = new Firestore({
     projectId: 'functions-nextjs',
