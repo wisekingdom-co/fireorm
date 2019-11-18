@@ -142,10 +142,15 @@ export class CollectionRepository<Entity = any> {
                 if (!(entity instanceof this.target))
                     entityClassObject = this.query.transformToClass(this.target, entity)
                 
-                entityClassObject[this.idPropName] = this.getDocId()
-
+                const newId = this.getDocId() || entityClassObject[this.idPropName]
+                if (newId) {
+                    entityClassObject[this.idPropName] = newId
+                } else if (!entityClassObject[this.idPropName]) {
+                    throw new Error(`Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`)
+                }
+            
                 batch.create(
-                    this.collectionRef.doc(entityClassObject[this.idPropName]), 
+                    this.collectionRef.doc(newId), 
                     this.query.transformToPlain(entityClassObject)
                 )
                 return entityClassObject
@@ -158,10 +163,15 @@ export class CollectionRepository<Entity = any> {
             if (!(partialEntity instanceof this.target))
                 entityClassObject = this.query.transformToClass(this.target, partialEntity)
             
-            entityClassObject[this.idPropName] = this.getDocId()
-
+            const newId = this.getDocId() || entityClassObject[this.idPropName]
+            if (newId) {
+                entityClassObject[this.idPropName] = newId
+            } else if (!entityClassObject[this.idPropName]) {
+                throw new Error(`Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`)
+            }
+            
             this.collectionRef
-                .doc(entityClassObject[this.idPropName])
+                .doc(newId)
                 .set(this.query.transformToPlain(entityClassObject))
             return entityClassObject
         }
