@@ -1,5 +1,5 @@
 import { getMetadataStorage, RelationMetadataArgs } from "../metadata-storage"
-import { Transform, TransformationType } from "class-transformer"
+import { Transform, TransformationType, Type } from "class-transformer"
 import { ObjectType } from "../common"
 import * as R from 'ramda'
 
@@ -30,6 +30,8 @@ export function ManyToOne<T>(typeFunc: () => ObjectType<T>, collectionType?: () 
             }
             return value
         })(object, propertyName)
+
+        Type(typeFunc)(object, propertyName)
 
         getMetadataStorage().relations.push({
             target: object.constructor,
