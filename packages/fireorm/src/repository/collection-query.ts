@@ -52,7 +52,7 @@ export class CollectionQuery {
         Object.keys(obj).forEach(key => {
             if (!obj[key]) 
                 return
-            if (obj[key] instanceof DocumentReference) {
+                if (obj[key] instanceof DocumentReference) {
                 obj[key] = obj[key].id
             } else if (typeof obj[key] === 'object' && 'toDate' in obj[key]) {
                 obj[key] = obj[key].toDate()
@@ -175,6 +175,8 @@ export class CollectionQuery {
     protected getQuery<Entity>(target: EntitySchema<Entity>): Query {
         if (this.options.collectionId) {
             return this.firestore.collectionGroup(this.options.collectionId)
+        } else if (this.options.parentPath) {
+            return this.firestore.collection(this.options.parentPath)
         } else {
             const collectionPath = getMetadataStorage().getCollectionPath(target)
             return this.firestore.collection(collectionPath)

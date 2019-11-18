@@ -64,11 +64,11 @@ export class MetadataStorage {
     }
 
     getIdProp(target: Function) {
-        const primaryProp = this.ids.find(idProp => idProp.target === target)
-        if (!primaryProp) {
+        const idProp = this.ids.find(idProp => idProp.target === target)
+        if (!idProp) {
             throw new Error(`Id perperty not found, entity: ${target.name}`)
         }
-        return primaryProp
+        return idProp
     }
 
     getIdPropName(target: Function) {
