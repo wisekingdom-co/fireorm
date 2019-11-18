@@ -6,6 +6,7 @@ import { plainToClass, classToPlain } from "class-transformer"
 import { FindConditions } from "../query-builder/find-conditions"
 import { FindManyOptions, FindOneOptions } from "../query-builder"
 import * as dot from 'dot-object'
+import * as jsonwebtoken from 'jsonwebtoken'
 
 export interface CollectionQueryOption {
     collectionId?: string
@@ -176,8 +177,17 @@ export class CollectionQuery {
             return this.firestore.collectionGroup(this.options.collectionId)
         } else {
             const collectionPath = getMetadataStorage().getCollectionPath(target)
-            return this.firestore.collectionGroup(collectionPath)
+            return this.firestore.collection(collectionPath)
         }
+    }
+
+    protected getDocumentRef<Entity>(target: EntitySchema<Entity>, id: string): DocumentReference {
+        const collectionPath = getMetadataStorage().getCollectionPath(target)
+        return this.firestore.collection(collectionPath).doc(id)
+    }
+
+    protected getIdPropName<Entity>(target: EntitySchema<Entity>) {
+        return getMetadataStorage().getIdPropName(target)
     }
 
     async find<Entity>(target: EntitySchema<Entity>, options?: FindManyOptions<Entity>): Promise<Entity[]>
@@ -218,12 +228,9 @@ export class CollectionQuery {
                 selfQuery = selfQuery.limit(optionsOrConditions.limit)
             
             if (optionsOrConditions.offset) 
-                selfQuery = selfQuery.limit(optionsOrConditions.offset)
+                selfQuery = selfQuery.offset(optionsOrConditions.offset)
 
-            if (optionsOrConditions.offset) 
-                selfQuery = selfQuery.limit(optionsOrConditions.offset)
-
-            if (optionsOrConditions.startAfter) 
+            if (optionsOrConditions.startAfter)
                 selfQuery = selfQuery.startAfter(...optionsOrConditions.startAfter)
             
             if (optionsOrConditions.startAt) 
@@ -241,6 +248,57 @@ export class CollectionQuery {
 
         const querySnapshot = await (this.options.tnx ? this.options.tnx.get(selfQuery) : selfQuery.get())
         return this.loadRelations(target, querySnapshot.docs, relations)
+    }
+
+    async findAndToken<Entity>(target: EntitySchema<Entity>, options?: FindManyOptions<Entity>): Promise<[string | undefined, Entity[]]>
+    async findAndToken<Entity>(target: EntitySchema<Entity>, conditions?: FindConditions<Entity>): Promise<[string | undefined, Entity[]]>
+    async findAndToken<Entity>(target: EntitySchema<Entity>, optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<[string | undefined, Entity[]]> {
+        const tokenObj: FindManyOptions<Entity> = {}
+        const where = this.getFindConditionsFromFindManyOptions(optionsOrConditions)
+        if (where) {
+            tokenObj.where = where
+        }
+        if (FindOptionsUtils.isFindManyOptions(optionsOrConditions)) {
+            if (optionsOrConditions.select)
+                tokenObj.select = optionsOrConditions.select 
+            
+            if (optionsOrConditions.order)
+                tokenObj.order = optionsOrConditions.order
+            
+            if (optionsOrConditions.limit)
+                tokenObj.limit = optionsOrConditions.limit
+        }
+        
+        const documents = await this.find(target, optionsOrConditions)
+        if (!tokenObj.limit || !tokenObj.order || tokenObj.limit > documents.length) {
+            return [undefined, documents]
+        }
+
+        const idPropName = this.getIdPropName(target)
+        const lastDocument = documents[documents.length - 1] as any
+        const lastDocumentId = lastDocument[idPropName]
+        const token = jsonwebtoken.sign({ ...tokenObj, lastDocumentId }, 'fireorm')
+
+        return [token, documents]
+    }
+
+    async findByToken<Entity>(target: EntitySchema<Entity>, token: string): Promise<[string | undefined, Entity[]]> {
+        let tokenObj: any
+        try {
+            tokenObj = jsonwebtoken.verify(token, 'fireorm')
+            if (!tokenObj.lastDocumentId) {
+                throw new Error()
+            }
+        } catch (error) {
+            throw new Error("Invalid pagination token")
+        }
+        
+        const { lastDocumentId, ...other } = tokenObj
+        const startAfter = await this.getDocumentRef(target, lastDocumentId).get()
+        if (!startAfter.exists) {
+            throw new Error("Invalid pagination token")
+        }
+        return this.findAndToken<Entity>(target, { ...other, startAfter: [startAfter] } as FindManyOptions<Entity>)
     }
 
     async findOne<Entity>(target: EntitySchema<Entity>, options?: FindOneOptions<Entity>): Promise<Entity | undefined>

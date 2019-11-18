@@ -43,7 +43,7 @@ export class MetadataStorage {
     readonly embeddeds: EmbeddedMetadataArgs[] = []
     readonly relations: RelationMetadataArgs[] = []
 
-    getCollection (target: Function) {
+    getCollection(target: Function) {
         const collection = this.collections.find(collection => collection.target === target)
         if (!collection) {
             throw new Error(`Collection not found, entity: ${target.name}`)
@@ -51,7 +51,7 @@ export class MetadataStorage {
         return collection
     }
 
-    getCollectionPath (target: Function) {
+    getCollectionPath(target: Function) {
         const collection = this.collections.find(collection => collection.target === target)
         if (!collection) {
             throw new Error(`Collection not found, entity: ${target.name}`)

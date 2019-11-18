@@ -22,6 +22,16 @@ export class CollectionGroupRepository<Entity = any> {
         return this.query.find(this.target, optionsOrConditions)
     }
 
+    async findAndToken(options?: FindManyOptions<Entity>): Promise<[string | undefined, Entity[]]>
+    async findAndToken(conditions?: FindConditions<Entity>): Promise<[string | undefined, Entity[]]>
+    async findAndToken(optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<[string | undefined, Entity[]]> {
+        return this.query.findAndToken(this.target, optionsOrConditions)
+    }
+
+    async findByToken(token: string): Promise<[string | undefined, Entity[]]> {
+        return this.query.findByToken(this.target, token)
+    } 
+
     async findOne(options?: FindOneOptions<Entity>): Promise<Entity | undefined>
     async findOne(conditions?: FindConditions<Entity>): Promise<Entity | undefined>
     async findOne(optionsOrConditions?: FindOneOptions<Entity> | FindConditions<Entity>): Promise<Entity | undefined> {

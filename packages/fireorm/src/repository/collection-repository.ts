@@ -187,7 +187,7 @@ export class CollectionRepository<Entity = any> {
             const batch = this.firestore.batch()
             docs.forEach(doc => {
                 const docRef = this.collectionRef.doc((doc as any)[this.idPropName])
-                batch.delete(docRef)
+                batch.update(docRef, this.dotNotationObj(partialEntity))
             })
             return batch.commit()
         }
@@ -222,6 +222,16 @@ export class CollectionRepository<Entity = any> {
     async find(conditions?: FindConditions<Entity>): Promise<Entity[]>
     async find(optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<Entity[]> {
         return this.query.find(this.target, optionsOrConditions)
+    }
+
+    async findAndToken(options?: FindManyOptions<Entity>): Promise<[string | undefined, Entity[]]>
+    async findAndToken(conditions?: FindConditions<Entity>): Promise<[string | undefined, Entity[]]>
+    async findAndToken(optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<[string | undefined, Entity[]]> {
+        return this.query.findAndToken(this.target, optionsOrConditions)
+    }
+
+    async findByToken(token: string): Promise<[string | undefined, Entity[]]> {
+        return this.query.findByToken(this.target, token)
     }
 
     async findOne(options?: FindOneOptions<Entity>): Promise<Entity | undefined>
