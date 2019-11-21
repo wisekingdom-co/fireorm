@@ -108,6 +108,10 @@ export class CollectionQuery {
             [path: string]: Promise<DocumentSnapshot> | Promise<QuerySnapshot>
         } = {}
 
+        const relationTypeCache: {
+            [path: string]: any
+        } = {}
+
         const idPropName = getMetadataStorage().getIdPropName(target)
         const collectionPath = getMetadataStorage().getCollectionPath(target)
 
@@ -124,12 +128,13 @@ export class CollectionQuery {
                         if (!relationDocMapping[index]) relationDocMapping.push({})
 
                         const field = dot.pick(relation, data)
-                        
+
                         if (field.constructor.name === 'DocumentReference') {
                             relationDocMapping[index][relation] = field.path
 
                             if (!relationDocCache[field.path]) {
                                 relationDocCache[field.path] = field.get()
+                                relationTypeCache[field.path] = relationMetadataArg.type()
                             }
                         }
                     } else if (relationMetadataArg && relationMetadataArg.relationType === 'one-to-many') {
@@ -140,11 +145,13 @@ export class CollectionQuery {
 
                         relationDocMapping[index][relation] = documentPath
 
-                        if (!relationDocCache[documentPath])
+                        if (!relationDocCache[documentPath]) {
                             relationDocCache[documentPath] = this.firestore
-                                .collection(relationCollectionPath)
+                                .collection(documentPath + '/' + relationCollectionPath)
                                 .where(relationMetadataArg.inverseSide!, '==', this.firestore.doc(documentPath))
                                 .get()
+                            relationTypeCache[documentPath] = relationMetadataArg.type()
+                        }
                     }
                 })
             }
@@ -157,12 +164,17 @@ export class CollectionQuery {
             })
             const relationCachePromiseResult = await Promise.all(relationCachePromise)
             const relationCacheData = relationCachePromiseResult.reduce((object, current) => {
-                if (current.value.constructor.name  === 'QueryDocumentSnapshot') {
-                    object[current.key] = { ...(current.value as QueryDocumentSnapshot).data() }
+                if (current.value.constructor.name === 'QueryDocumentSnapshot') {
+                    // object[current.key] = { ...(current.value as QueryDocumentSnapshot).data() }
+                    object[current.key] = this.transformToClass(
+                        relationTypeCache[current.key] as any,
+                        (current.value as QueryDocumentSnapshot).data(),
+                    )
                 }
                 if (current.value.constructor.name === 'QuerySnapshot') {
                     object[current.key] = (current.value as QuerySnapshot).docs.map(doc => {
-                        return { ...doc.data() }
+                        // return { ...doc.data() }
+                        return this.transformToClass(relationTypeCache[current.key] as any, doc.data())
                     })
                 }
                 return object
