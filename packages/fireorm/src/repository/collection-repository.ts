@@ -12,7 +12,11 @@ import { CollectionQuery } from './collection-query'
 const { FieldTransform } = require('@google-cloud/firestore/build/src/field-value')
 
 export class CollectionRepository<Entity = any> {
-    static getRepository<Entity>(target: EntitySchema<Entity>, firestore: Firestore, parentPath?: string): CollectionRepository<Entity> {
+    static getRepository<Entity>(
+        target: EntitySchema<Entity>,
+        firestore: Firestore,
+        parentPath?: string,
+    ): CollectionRepository<Entity> {
         const query = new CollectionQuery(firestore, { parentPath })
         return new CollectionRepository<Entity>(target, firestore, query, parentPath)
     }
@@ -22,10 +26,10 @@ export class CollectionRepository<Entity = any> {
     protected collectionRef: CollectionReference
 
     constructor(
-        protected target: EntitySchema<Entity>, 
-        protected firestore: Firestore, 
-        protected query: CollectionQuery, 
-        collectionPath?: string
+        protected target: EntitySchema<Entity>,
+        protected firestore: Firestore,
+        protected query: CollectionQuery,
+        collectionPath?: string,
     ) {
         this.idPropName = getMetadataStorage().getIdPropName(this.target)
         this.collectionPath = collectionPath ? collectionPath : getMetadataStorage().getCollectionPath(this.target)
@@ -39,13 +43,13 @@ export class CollectionRepository<Entity = any> {
     protected dotNotationObj(data: any) {
         let loop = (namespace: any, acc: any, data: any) => {
             if (data instanceof FieldTransform || Array.isArray(data)) {
-                Object.assign(acc, {[namespace.join('.')]: data})
+                Object.assign(acc, { [namespace.join('.')]: data })
             } else if (this.isObject(data)) {
-                Object.keys(data).forEach(k=> {
+                Object.keys(data).forEach(k => {
                     loop(namespace.concat([k]), acc, data[k])
                 })
             } else {
-                Object.assign(acc, {[namespace.join('.')]: data})
+                Object.assign(acc, { [namespace.join('.')]: data })
             }
             return acc
         }
@@ -60,8 +64,14 @@ export class CollectionRepository<Entity = any> {
         return this.collectionRef.doc(docId || this.getDocId())
     }
 
-    runTransaction<T>(updateFunction: (tnxRepo: TransactionRepository) => Promise<T>, transactionOptions?: {maxAttempts?: number}): Promise<T> {
-        return this.firestore.runTransaction(tnx => updateFunction(new TransactionRepository(this.firestore, this.collectionPath, tnx)), transactionOptions)
+    runTransaction<T>(
+        updateFunction: (tnxRepo: TransactionRepository) => Promise<T>,
+        transactionOptions?: { maxAttempts?: number },
+    ): Promise<T> {
+        return this.firestore.runTransaction(
+            tnx => updateFunction(new TransactionRepository(this.firestore, this.collectionPath, tnx)),
+            transactionOptions,
+        )
     }
 
     getSubRepository<T>(target: EntitySchema<T>, field: keyof Entity, id: string) {
@@ -71,7 +81,7 @@ export class CollectionRepository<Entity = any> {
 
     async save<T extends DeepPartial<Entity>>(entity: T): Promise<T>
     async save<T extends DeepPartial<Entity>>(entities: T[]): Promise<T[]>
-    async save<T extends DeepPartial<Entity>>(entityOrEntities: T|T[]): Promise<T|T[]> {
+    async save<T extends DeepPartial<Entity>>(entityOrEntities: T | T[]): Promise<T | T[]> {
         if (entityOrEntities instanceof Array) {
             const batch = this.firestore.batch()
             const docs = entityOrEntities.map(entity => {
@@ -93,10 +103,15 @@ export class CollectionRepository<Entity = any> {
                     if (newId) {
                         entityClassObject[this.idPropName] = newId
                     } else if (!entityClassObject[this.idPropName]) {
-                        throw new Error(`Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`)
+                        throw new Error(
+                            `Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`,
+                        )
                     }
-                    
-                    batch.create(this.collectionRef.doc(entityClassObject[this.idPropName]), this.query.transformToPlain(entityClassObject))
+
+                    batch.create(
+                        this.collectionRef.doc(entityClassObject[this.idPropName]),
+                        this.query.transformToPlain(entityClassObject),
+                    )
                     return entityClassObject
                 }
             })
@@ -139,20 +154,16 @@ export class CollectionRepository<Entity = any> {
             const batch = this.firestore.batch()
             const docs = partialEntity.map(entity => {
                 let entityClassObject = entity as any
-                if (!(entity instanceof this.target))
-                    entityClassObject = this.query.transformToClass(this.target, entity)
-                
+                if (!(entity instanceof this.target)) entityClassObject = this.query.transformToClass(this.target, entity)
+
                 const newId = this.getDocId() || entityClassObject[this.idPropName]
                 if (newId) {
                     entityClassObject[this.idPropName] = newId
                 } else if (!entityClassObject[this.idPropName]) {
                     throw new Error(`Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`)
                 }
-            
-                batch.create(
-                    this.collectionRef.doc(newId), 
-                    this.query.transformToPlain(entityClassObject)
-                )
+
+                batch.create(this.collectionRef.doc(newId), this.query.transformToPlain(entityClassObject))
                 return entityClassObject
             })
 
@@ -162,26 +173,39 @@ export class CollectionRepository<Entity = any> {
             let entityClassObject = partialEntity as any
             if (!(partialEntity instanceof this.target))
                 entityClassObject = this.query.transformToClass(this.target, partialEntity)
-            
+
             const newId = this.getDocId() || entityClassObject[this.idPropName]
             if (newId) {
                 entityClassObject[this.idPropName] = newId
             } else if (!entityClassObject[this.idPropName]) {
                 throw new Error(`Id properties cannot undefined. entity: ${this.target.name}, property: ${this.idPropName}`)
             }
-            
-            this.collectionRef
-                .doc(newId)
-                .set(this.query.transformToPlain(entityClassObject))
+
+            this.collectionRef.doc(newId).set(this.query.transformToPlain(entityClassObject))
             return entityClassObject
         }
     }
 
-    async update(criteria: string, partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity): Promise<WriteResult>
-    async update(criteria: string[], partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity): Promise<WriteResult[]>
-    async update(criteria: FindManyOptions<Entity>, partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity): Promise<WriteResult[]>
-    async update(criteria: FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity): Promise<WriteResult[]>
-    async update(criteria: string | string[] | FindManyOptions<Entity> | FindConditions<Entity>, partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity): Promise<WriteResult | WriteResult[]> {
+    async update(
+        criteria: string,
+        partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity,
+    ): Promise<WriteResult>
+    async update(
+        criteria: string[],
+        partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity,
+    ): Promise<WriteResult[]>
+    async update(
+        criteria: FindManyOptions<Entity>,
+        partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity,
+    ): Promise<WriteResult[]>
+    async update(
+        criteria: FindConditions<Entity>,
+        partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity,
+    ): Promise<WriteResult[]>
+    async update(
+        criteria: string | string[] | FindManyOptions<Entity> | FindConditions<Entity>,
+        partialEntity: QueryDeepPartialEntity<Entity> | QueryDotNotationPartialEntity,
+    ): Promise<WriteResult | WriteResult[]> {
         if (criteria instanceof Array) {
             const batch = this.firestore.batch()
             criteria.forEach(id => {
@@ -191,7 +215,21 @@ export class CollectionRepository<Entity = any> {
             return batch.commit()
         } else if (typeof criteria === 'string') {
             delete (partialEntity as any)[this.idPropName]
-            return this.collectionRef.doc(criteria).update(this.dotNotationObj(partialEntity))
+            const relations = getMetadataStorage().relations.filter(
+                relation => relation.target == this.target && relation.relationType === 'many-to-one',
+            )
+            const relationFound = relations.filter(relation => {
+                return Object.keys(partialEntity).indexOf(relation.propertyName) !== -1
+            })
+            const fbObj = this.dotNotationObj(partialEntity)
+
+            relationFound.forEach(relation => {
+                const relationPath = getMetadataStorage().getCollectionPath(relation.type())
+                ;(fbObj as any)[relation.propertyName] = this.firestore
+                    .collection(relationPath)
+                    .doc((fbObj as any)[relation.propertyName])
+            })
+            return this.collectionRef.doc(criteria).update(fbObj)
         } else {
             const docs = await this.query.find(this.target, criteria)
             const batch = this.firestore.batch()
@@ -207,7 +245,9 @@ export class CollectionRepository<Entity = any> {
     async delete(criteria: string[]): Promise<WriteResult[]>
     async delete(criteria: FindManyOptions<Entity>): Promise<WriteResult[]>
     async delete(criteria: FindConditions<Entity>): Promise<WriteResult[]>
-    async delete(criteria: string | string[] | FindManyOptions<Entity> | FindConditions<Entity>): Promise<WriteResult | WriteResult[]> {
+    async delete(
+        criteria: string | string[] | FindManyOptions<Entity> | FindConditions<Entity>,
+    ): Promise<WriteResult | WriteResult[]> {
         if (criteria instanceof Array) {
             const batch = this.firestore.batch()
             criteria.forEach(id => {
@@ -236,7 +276,9 @@ export class CollectionRepository<Entity = any> {
 
     async findAndToken(options?: FindManyOptions<Entity>): Promise<[string | undefined, Entity[]]>
     async findAndToken(conditions?: FindConditions<Entity>): Promise<[string | undefined, Entity[]]>
-    async findAndToken(optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>): Promise<[string | undefined, Entity[]]> {
+    async findAndToken(
+        optionsOrConditions?: FindManyOptions<Entity> | FindConditions<Entity>,
+    ): Promise<[string | undefined, Entity[]]> {
         return this.query.findAndToken(this.target, optionsOrConditions)
     }
 
@@ -258,7 +300,10 @@ export class CollectionRepository<Entity = any> {
 
     async findByIds(id: string, options?: FindOneOptions<Entity>): Promise<Entity | undefined>
     async findByIds(ids: string[], options?: FindOneOptions<Entity>): Promise<(Entity | undefined)[]>
-    async findByIds(idOrIds: string | string[], options?: FindOneOptions<Entity>): Promise<(Entity | undefined) | (Entity | undefined)[]> {
+    async findByIds(
+        idOrIds: string | string[],
+        options?: FindOneOptions<Entity>,
+    ): Promise<(Entity | undefined) | (Entity | undefined)[]> {
         return this.query.findByIds(this.target, idOrIds as any, options)
     }
 }
