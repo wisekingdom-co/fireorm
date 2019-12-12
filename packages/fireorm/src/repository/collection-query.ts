@@ -124,8 +124,8 @@ export class CollectionQuery {
                         if (!relationDocMapping[index]) relationDocMapping.push({})
 
                         const field = dot.pick(relation, data)
-                        
-                        if (field.constructor.name === 'DocumentReference') {
+
+                        if (field && field.constructor.name === 'DocumentReference') {
                             relationDocMapping[index][relation] = field.path
 
                             if (!relationDocCache[field.path]) {
@@ -157,7 +157,7 @@ export class CollectionQuery {
             })
             const relationCachePromiseResult = await Promise.all(relationCachePromise)
             const relationCacheData = relationCachePromiseResult.reduce((object, current) => {
-                if (current.value.constructor.name  === 'QueryDocumentSnapshot') {
+                if (current.value.constructor.name === 'QueryDocumentSnapshot') {
                     object[current.key] = { ...(current.value as QueryDocumentSnapshot).data() }
                 }
                 if (current.value.constructor.name === 'QuerySnapshot') {
